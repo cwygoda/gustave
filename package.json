@@ -21,7 +21,8 @@
     "@getpaseo/cli": "^0.1.110",
     "@sveltejs/mcp": "^0.1.25",
     "agent-browser": "^0.32.2",
-    "mcporter": "^0.12.3"
+    "mcporter": "^0.12.3",
+    "pi-powerline-footer": "^0.7.0"
   },
   "peerDependencies": {
     "@earendil-works/pi-agent-core": "*",
@@ -31,6 +32,7 @@
   },
   "pi": {
     "extensions": [
+      "./node_modules/pi-powerline-footer/index.ts",
       "./extensions"
     ],
     "skills": [

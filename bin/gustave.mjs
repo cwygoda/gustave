@@ -99,10 +99,44 @@ function ensureDefaultPiSettings(agentDir, packageRoot, config) {
     settings[key] = [...list.filter((item) => item !== value), value];
   };
 
+  const gustavePowerlineItem = {
+    id: "gustave",
+    statusKey: "gustave",
+    position: "right",
+    prefix: "Gustave",
+    color: "accent",
+    hideWhenMissing: false,
+  };
+  const configuredPowerline =
+    config.powerline && typeof config.powerline === "object" && !Array.isArray(config.powerline) ? config.powerline : {};
+  const defaultPowerline = deepMerge(
+    {
+      preset: "default",
+      fixedEditor: true,
+      mouseScroll: true,
+      welcome: true,
+      path: { mode: "basename" },
+      model: { display: "name" },
+      cost: { subscriptionDisplay: "subscription" },
+      customItems: [gustavePowerlineItem],
+    },
+    configuredPowerline
+  );
+
   if (!settings.theme) settings.theme = config.theme ?? "gustave";
   if (!settings.defaultProjectTrust) settings.defaultProjectTrust = config.defaultProjectTrust ?? "ask";
   if (settings.enableSkillCommands === undefined) settings.enableSkillCommands = true;
+  if (settings.powerline === undefined) {
+    settings.powerline = defaultPowerline;
+  } else if (settings.powerline && typeof settings.powerline === "object" && !Array.isArray(settings.powerline)) {
+    const existingCustomItems = Array.isArray(settings.powerline.customItems) ? settings.powerline.customItems : [];
+    settings.powerline = deepMerge(defaultPowerline, settings.powerline);
+    if (!existingCustomItems.some((item) => item && typeof item === "object" && item.id === "gustave")) {
+      settings.powerline.customItems = [...existingCustomItems, gustavePowerlineItem];
+    }
+  }
   appendUnique("extensions", join(packageRoot, "extensions"));
+  appendUnique("extensions", join(packageRoot, "node_modules", "pi-powerline-footer", "index.ts"));
   appendUnique("skills", join(packageRoot, "skills"));
   appendUnique("prompts", join(packageRoot, "prompts"));
   appendUnique("themes", join(packageRoot, "themes"));
@@ -110,10 +144,14 @@ function ensureDefaultPiSettings(agentDir, packageRoot, config) {
   writeFileSync(settingsFile, `${JSON.stringify(settings, null, 2)}\n`);
 }
 
-function packageBin(packageName, binPath) {
-  const path = join(root, "node_modules", ...packageName.split("/"), binPath);
+function packageFile(packageName, filePath) {
+  const path = join(root, "node_modules", ...packageName.split("/"), filePath);
   if (existsSync(path)) return path;
   throw new Error(`Could not find ${packageName}. Run \`npm install\` or \`gustave self-update\` first.`);
+}
+
+function packageBin(packageName, binPath) {
+  return packageFile(packageName, binPath);
 }
 
 function piCliPath() {
@@ -269,14 +307,17 @@ if (argv[0] === "pi-help") {
 
 const piArgs = Array.isArray(config.piArgs) ? config.piArgs : [];
 const bundledExtensions = [
-  "ask-user.ts",
-  "gustave-ui.ts",
-  "mcporter.ts",
-  "memory.ts",
-  "plannotator.ts",
-  "research.ts",
-  "subagents.ts",
-].flatMap((file) => ["--extension", join(root, "extensions", file)]);
+  ["--extension", packageFile("pi-powerline-footer", "index.ts")],
+  ...[
+    "ask-user.ts",
+    "gustave-ui.ts",
+    "mcporter.ts",
+    "memory.ts",
+    "plannotator.ts",
+    "research.ts",
+    "subagents.ts",
+  ].map((file) => ["--extension", join(root, "extensions", file)]),
+].flat();
 
 const resourceArgs = [
   ...bundledExtensions,

@@ -1,6 +1,6 @@
 # Gustave
 
-Gustave is a custom coding-agent distribution based on [pi](https://pi.dev). It wraps pi with a branded CLI, bundled skills/tools, MCP access, browser automation, subagents, memory, and a powerline-style TUI.
+Gustave is a custom coding-agent distribution based on [pi](https://pi.dev). It wraps pi with a branded CLI, bundled skills/tools, MCP access, browser automation, subagents, memory, and the [`pi-powerline-footer`](https://pi.dev/packages/pi-powerline-footer) TUI.
 
 ## Copy/paste install
 
@@ -254,6 +254,7 @@ Example for Bedrock:
 
 | Area | Tools/commands | Purpose |
 |---|---|---|
+| TUI | `pi-powerline-footer`, `/powerline`, `/bash-mode`, `/vibe` | fixed-editor powerline, git/context/token/cost segments, stash/history, bash mode, working vibes |
 | Architecture | `architecture` skill | hexagonal/clean architecture judgment, fast test pyramid, modern CLI tool defaults |
 | Ask user | `ask_user` | structured human decision handshakes |
 | Research | `web_search`, `fetch_url` | web/docs research (`BRAVE_API_KEY` optional) |
@@ -330,4 +331,4 @@ This repository is also a pi package. Pi discovers resources from:
 - `prompts/`
 - `themes/`
 
-The wrapper writes initial Gustave settings into `~/.gustave/agent/settings.json` and keeps paths absolute.
+The wrapper writes initial Gustave settings into `~/.gustave/agent/settings.json` and keeps paths absolute. Gustave also bundles `pi-powerline-footer` as a dependency and loads it from `node_modules/pi-powerline-footer/index.ts`; the local `gustave-ui` extension only publishes a small `gustave` status item for that powerline.

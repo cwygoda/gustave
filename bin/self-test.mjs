@@ -18,6 +18,10 @@ function run(label, command, args, opts = {}) {
 
 run("Installer shell syntax", "sh", ["-n", "install.sh"]);
 run("TypeScript extensions", process.execPath, ["node_modules/typescript/bin/tsc", "-p", "tsconfig.json"]);
+run("Powerline footer dependency", process.execPath, [
+  "-e",
+  "require('fs').accessSync('node_modules/pi-powerline-footer/index.ts')",
+]);
 run("Commit hook accepts Conventional Commit", process.execPath, [
   "-e",
   "const fs=require('fs'),os=require('os'),path=require('path'),cp=require('child_process'); const f=path.join(os.tmpdir(),'gustave-good-commit-msg'); fs.writeFileSync(f,'fix(cli): validate commit hook\\n'); process.exit(cp.spawnSync(process.execPath,['bin/commit-msg-hook.mjs',f],{cwd:process.cwd(),stdio:'inherit'}).status ?? 1);",
