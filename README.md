@@ -255,6 +255,7 @@ Example for Bedrock:
 | Area | Tools/commands | Purpose |
 |---|---|---|
 | TUI | `pi-powerline-footer`, `/powerline`, `/bash-mode`, `/vibe` | fixed-editor powerline, git/context/token/cost segments, stash/history, bash mode, working vibes |
+| Output style | `i-have-adhd` skill | action-first, numbered, low-tangent responses for ADHD-friendly execution |
 | Architecture | `architecture` skill | hexagonal/clean architecture judgment, fast test pyramid, modern CLI tool defaults |
 | Ask user | `ask_user` | structured human decision handshakes |
 | Research | `web_search`, `fetch_url` | web/docs research (`BRAVE_API_KEY` optional) |
