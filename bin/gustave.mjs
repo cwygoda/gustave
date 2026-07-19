@@ -310,6 +310,7 @@ const bundledExtensions = [
   ["--extension", packageFile("pi-powerline-footer", "index.ts")],
   ...[
     "ask-user.ts",
+    "game-sounds.ts",
     "gustave-ui.ts",
     "mcporter.ts",
     "memory.ts",

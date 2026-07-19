@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@citedy/game-sounds':
+        specifier: ^3.0.1
+        version: 3.0.1
       '@earendil-works/pi-agent-core':
         specifier: '*'
         version: 0.80.10(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(ws@8.21.1)(zod@4.4.3)
@@ -302,6 +305,10 @@ packages:
     engines: {node: '>=14.21.3'}
     cpu: [x64]
     os: [win32]
+
+  '@citedy/game-sounds@3.0.1':
+    resolution: {integrity: sha512-uxUOBAy590mqaqNLX1cGf0bM9Grdcoiswfz2tHjdDtUxrn5CyYsJURaYmMKgLESX/RF12DJx19zphvl3+BmkXQ==}
+    hasBin: true
 
   '@clack/core@1.4.3':
     resolution: {integrity: sha512-/kr3UWNtdJfxZtPgDqUOmG2pvwlmcLGheex5yiZKdwbzZJxhV+HMNR9QNmyY5cGwTNV6LrR7Jtp+KjhUAP1qBQ==}
@@ -2911,6 +2918,8 @@ snapshots:
 
   '@biomejs/cli-win32-x64@2.5.4':
     optional: true
+
+  '@citedy/game-sounds@3.0.1': {}
 
   '@clack/core@1.4.3':
     dependencies:
