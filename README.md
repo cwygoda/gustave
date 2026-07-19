@@ -262,10 +262,33 @@ Example for Bedrock:
 | Memory | `memory_save`, `memory_search`, `memory_delete` | durable memory in `~/.gustave/memory` |
 | Plans | `plan_annotate`, `plan_read` | markdown plan tracking |
 | Subagents | `subagents_list`, `subagent` | isolated specialized pi subprocesses |
+| Credential firewall | `/credential-firewall` | keeps `gh`/`aws` usable while blocking known credential extraction and redacting accidental token leaks from tool output |
 | MCP | `mcp_list`, `mcp_call`, `svelte_mcp`, `gustave mcporter` | MCP access through MCPorter |
 | Svelte | `gustave svelte-mcp ...`, `svelte_mcp` | official Svelte MCP via `https://mcp.svelte.dev/mcp` |
 | Browser | `gustave agent-browser ...`, MCP server `agent-browser` | token-efficient browser automation |
 | Paseo | `gustave paseo ...` | external multi-agent orchestration |
+
+## Credential firewall
+
+Gustave includes a credential firewall extension that lets authenticated CLIs keep working while reducing accidental credential exposure to the model/session.
+
+It blocks known credential-extraction actions such as:
+
+```bash
+gh auth token
+aws configure export-credentials
+aws configure get aws_secret_access_key
+cat ~/.aws/credentials
+cat ~/.config/gh/hosts.yml
+```
+
+It also redacts common token shapes from `bash` and `read` tool output before they enter the session. Normal commands such as `gh repo view`, `gh pr list`, `aws s3 ls`, and `aws sts get-caller-identity` remain available.
+
+Check status inside Gustave:
+
+```text
+/credential-firewall
+```
 
 ## MCPorter and Svelte MCP
 
