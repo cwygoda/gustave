@@ -16,6 +16,7 @@ function run(label, command, args, opts = {}) {
   process.stdout.write(`✓ ${label}\n`);
 }
 
+run("Installer shell syntax", "sh", ["-n", "install.sh"]);
 run("TypeScript extensions", process.execPath, ["node_modules/typescript/bin/tsc", "-p", "tsconfig.json"]);
 run("Commit hook accepts Conventional Commit", process.execPath, ["-e", "const fs=require('fs'),os=require('os'),path=require('path'),cp=require('child_process'); const f=path.join(os.tmpdir(),'gustave-good-commit-msg'); fs.writeFileSync(f,'fix(cli): validate commit hook\\n'); process.exit(cp.spawnSync(process.execPath,['bin/commit-msg-hook.mjs',f],{cwd:process.cwd(),stdio:'inherit'}).status ?? 1);"]);
 run("Commit hook rejects agent attribution", process.execPath, ["-e", "const fs=require('fs'),os=require('os'),path=require('path'),cp=require('child_process'); const f=path.join(os.tmpdir(),'gustave-bad-commit-msg'); fs.writeFileSync(f,'fix(cli): validate commit hook\\n\\nGenerated with Claude Code\\n'); const r=cp.spawnSync(process.execPath,['bin/commit-msg-hook.mjs',f],{cwd:process.cwd(),stdio:'ignore'}); process.exit(r.status === 1 ? 0 : 1);"]);

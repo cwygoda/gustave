@@ -4,7 +4,35 @@ Gustave is a custom coding-agent distribution based on [pi](https://pi.dev). It 
 
 ## Copy/paste install
 
-Fresh machine / private GitHub checkout with a non-default SSH key:
+One-liner install/update:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/cwygoda/gustave/main/install.sh | sh
+```
+
+Private GitHub / non-default SSH key:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/cwygoda/gustave/main/install.sh | \
+  GIT_SSH_COMMAND='ssh -i ~/.ssh/id_ed25519_cwygoda -o IdentitiesOnly=yes -o BatchMode=yes' sh
+```
+
+The script clones/updates `git@github.com:cwygoda/gustave.git` into `~/.local/src/gustave`, runs `pnpm install --ignore-scripts`, installs the absolute launcher into `~/.local/bin/gustave`, and runs `gustave self-test`. Before cloning/updating GitHub SSH repos, it probes your current `GIT_SSH_COMMAND`, default SSH setup, `~/.ssh/config` `IdentityFile` entries, and `~/.ssh/id_*` keys with a dry-run push to find a key with repository write access.
+
+Script knobs:
+
+```bash
+GUSTAVE_REPO=git@github.com:cwygoda/gustave.git \
+GUSTAVE_REF=main \
+GUSTAVE_INSTALL_DIR=~/.local/src/gustave \
+GUSTAVE_BIN_DIR=~/.local/bin \
+GUSTAVE_ONLINE_TEST=1 \
+  sh install.sh
+```
+
+Set `GUSTAVE_SKIP_SSH_DETECT=1` to skip SSH key probing.
+
+Fresh machine manual install with private GitHub checkout:
 
 ```bash
 GIT_SSH_COMMAND='ssh -i ~/.ssh/id_ed25519_cwygoda -o IdentitiesOnly=yes -o BatchMode=yes' \
