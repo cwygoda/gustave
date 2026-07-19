@@ -29,7 +29,7 @@ async function braveSearch(query: string, count: number) {
     },
   });
   if (!res.ok) throw new Error(`Brave Search failed: HTTP ${res.status}`);
-  const json = await res.json() as any;
+  const json = (await res.json()) as any;
   return (json.web?.results ?? []).map((r: any) => ({
     title: r.title,
     url: r.url,
@@ -45,7 +45,7 @@ async function duckDuckGoInstantAnswer(query: string) {
   url.searchParams.set("skip_disambig", "1");
   const res = await fetch(url, { headers: { Accept: "application/json" } });
   if (!res.ok) throw new Error(`DuckDuckGo failed: HTTP ${res.status}`);
-  const json = await res.json() as any;
+  const json = (await res.json()) as any;
   const results = [] as Array<{ title: string; url: string; snippet: string }>;
   if (json.AbstractText) {
     results.push({ title: json.Heading || query, url: json.AbstractURL || "", snippet: json.AbstractText });
@@ -71,7 +71,12 @@ export default function researchExtension(pi: ExtensionAPI) {
       const results = (await braveSearch(query, count)) ?? (await duckDuckGoInstantAnswer(query));
       const trimmed = results.slice(0, count);
       const text = trimmed.length
-        ? trimmed.map((r: { title: string; url: string; snippet: string }, i: number) => `${i + 1}. ${r.title}\n   ${r.url}\n   ${r.snippet}`).join("\n\n")
+        ? trimmed
+            .map(
+              (r: { title: string; url: string; snippet: string }, i: number) =>
+                `${i + 1}. ${r.title}\n   ${r.url}\n   ${r.snippet}`
+            )
+            .join("\n\n")
         : "No search results found. If you need general web search, configure BRAVE_API_KEY.";
       return { content: [{ type: "text", text }], details: { query, results: trimmed } };
     },

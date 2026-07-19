@@ -15,15 +15,20 @@ const gustaveSystemPolicy = `Gustave operating policy:
 - Commits: never add agent/AI attribution lines to commit messages. Do not add lines like "Generated with Claude Code", "Co-Authored-By: Claude ...", or any Generated-by/Signed-off-by line naming Claude, Codex, ChatGPT, OpenAI, Anthropic, Gustave, or pi.
 - Commits: keep commit messages concise and human-authored.`;
 function expandHome(value) {
-  return typeof value === "string" && value.startsWith("~")
-    ? join(homedir(), value.slice(1))
-    : value;
+  return typeof value === "string" && value.startsWith("~") ? join(homedir(), value.slice(1)) : value;
 }
 
 function deepMerge(a, b) {
   const out = { ...a };
   for (const [key, value] of Object.entries(b ?? {})) {
-    if (value && typeof value === "object" && !Array.isArray(value) && a[key] && typeof a[key] === "object" && !Array.isArray(a[key])) {
+    if (
+      value &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      a[key] &&
+      typeof a[key] === "object" &&
+      !Array.isArray(a[key])
+    ) {
       out[key] = deepMerge(a[key], value);
     } else {
       out[key] = value;
@@ -147,7 +152,11 @@ function ensureMcporterConfig(home) {
 
   let existing = {};
   if (existsSync(configFile)) {
-    try { existing = readJson(configFile); } catch { existing = {}; }
+    try {
+      existing = readJson(configFile);
+    } catch {
+      existing = {};
+    }
   }
   const merged = deepMerge(next, existing);
   merged.mcpServers = { ...next.mcpServers, ...(existing.mcpServers ?? {}) };
@@ -176,7 +185,9 @@ function spawnNodeScript(script, args, env) {
 }
 
 function printGustaveHelp() {
-  console.log(`gustave - a custom coding agent based on pi\n\nUsage:\n  gustave [pi options] [@files...] [messages...]\n  gustave update [pi update options]\n  gustave install-bin [--dir ~/.local/bin]\n  gustave self-test [--online]\n  gustave self-update [--online]\n  gustave github-ssh [--owner cwygoda]\n  gustave mcporter [...args]\n  gustave svelte-mcp [list|tool ...args]\n  gustave paseo [...args]\n  gustave agent-browser [...args]\n  gustave config-path\n  gustave pi-help\n\nConfig files, merged in order:\n  ~/.config/gustave/config.json\n  ~/.gustave/config.json\n  ./.gustave/config.json\n\nSet GUSTAVE_CONFIG=/path/to/config.json to load an explicit file first.\n\nExample config:\n{\n  \"env\": { \"AWS_PROFILE\": \"work-bedrock\" },\n  \"envFiles\": [\"~/.gustave/env\"],\n  \"piArgs\": [\"--provider\", \"bedrock\"],\n  \"theme\": \"gustave\"\n}\n\nAll other arguments are passed through to pi. Use \`gustave pi-help\` for pi's full help.`);
+  console.log(
+    `gustave - a custom coding agent based on pi\n\nUsage:\n  gustave [pi options] [@files...] [messages...]\n  gustave update [pi update options]\n  gustave install-bin [--dir ~/.local/bin]\n  gustave self-test [--online]\n  gustave self-update [--online]\n  gustave github-ssh [--owner cwygoda]\n  gustave mcporter [...args]\n  gustave svelte-mcp [list|tool ...args]\n  gustave paseo [...args]\n  gustave agent-browser [...args]\n  gustave config-path\n  gustave pi-help\n\nConfig files, merged in order:\n  ~/.config/gustave/config.json\n  ~/.gustave/config.json\n  ./.gustave/config.json\n\nSet GUSTAVE_CONFIG=/path/to/config.json to load an explicit file first.\n\nExample config:\n{\n  "env": { "AWS_PROFILE": "work-bedrock" },\n  "envFiles": ["~/.gustave/env"],\n  "piArgs": ["--provider", "bedrock"],\n  "theme": "gustave"\n}\n\nAll other arguments are passed through to pi. Use \`gustave pi-help\` for pi's full help.`
+  );
 }
 
 const argv = process.argv.slice(2);
@@ -191,7 +202,7 @@ const agentDir = expandHome(config.piAgentDir ?? process.env.PI_CODING_AGENT_DIR
 
 const envFromFiles = Object.assign(
   {},
-  ...((config.envFiles ?? []).map((p) => readEnvFile(resolve(process.cwd(), expandHome(p)))))
+  ...(config.envFiles ?? []).map((p) => readEnvFile(resolve(process.cwd(), expandHome(p))))
 );
 const mcporterConfig = ensureMcporterConfig(gustaveHome);
 const childEnv = withGitCommitPolicyEnv({
@@ -214,7 +225,8 @@ if (argv[0] === "config-path") {
 
 if (argv[0] === "install-bin") spawnNodeScript("install-user-bin.mjs", argv.slice(1), childEnv);
 if (argv[0] === "self-test") spawnNodeScript("self-test.mjs", argv.slice(1), childEnv);
-if (argv[0] === "self-update" || argv[0] === "update-gustave") spawnNodeScript("self-update.mjs", argv.slice(1), childEnv);
+if (argv[0] === "self-update" || argv[0] === "update-gustave")
+  spawnNodeScript("self-update.mjs", argv.slice(1), childEnv);
 if (argv[0] === "github-ssh") spawnNodeScript("github-ssh.mjs", argv.slice(1), childEnv);
 
 function spawnTool(bin, args) {
@@ -229,21 +241,21 @@ function spawnTool(bin, args) {
 function withMcporterDefaults(args) {
   const hasConfig = args.includes("--config");
   const hasRoot = args.includes("--root");
-  return [
-    ...(hasConfig ? [] : ["--config", mcporterConfig]),
-    ...(hasRoot ? [] : ["--root", process.cwd()]),
-    ...args,
-  ];
+  return [...(hasConfig ? [] : ["--config", mcporterConfig]), ...(hasRoot ? [] : ["--root", process.cwd()]), ...args];
 }
 
 if (argv[0] === "mcporter") spawnTool(packageBin("mcporter", "dist/cli.js"), withMcporterDefaults(argv.slice(1)));
 if (argv[0] === "paseo") spawnTool(packageBin("@getpaseo/cli", "bin/paseo"), argv.slice(1));
-if (argv[0] === "agent-browser" || argv[0] === "agentbrowser") spawnTool(packageBin("agent-browser", "bin/agent-browser.js"), argv.slice(1));
+if (argv[0] === "agent-browser" || argv[0] === "agentbrowser")
+  spawnTool(packageBin("agent-browser", "bin/agent-browser.js"), argv.slice(1));
 if (argv[0] === "svelte-mcp") {
   const rest = argv.slice(1);
   const mcporterBin = packageBin("mcporter", "dist/cli.js");
   if (rest.length === 0 || rest[0] === "list") {
-    spawnTool(mcporterBin, withMcporterDefaults(["list", "svelte", "--brief", ...rest.slice(rest[0] === "list" ? 1 : 0)]));
+    spawnTool(
+      mcporterBin,
+      withMcporterDefaults(["list", "svelte", "--brief", ...rest.slice(rest[0] === "list" ? 1 : 0)])
+    );
   } else {
     const tool = rest[0] === "call" ? rest[1] : rest[0];
     const toolArgs = rest[0] === "call" ? rest.slice(2) : rest.slice(1);
@@ -268,16 +280,17 @@ const bundledExtensions = [
 
 const resourceArgs = [
   ...bundledExtensions,
-  "--skill", join(root, "skills"),
-  "--theme", join(root, "themes", "gustave.json"),
-  "--append-system-prompt", gustaveSystemPolicy,
+  "--skill",
+  join(root, "skills"),
+  "--theme",
+  join(root, "themes", "gustave.json"),
+  "--append-system-prompt",
+  gustaveSystemPolicy,
 ];
 
 const packageCommands = new Set(["install", "remove", "uninstall", "update", "list", "config"]);
 const commandMode = packageCommands.has(argv[0]);
-const args = commandMode
-  ? [piCliPath(), ...argv]
-  : [piCliPath(), ...resourceArgs, ...piArgs, ...argv];
+const args = commandMode ? [piCliPath(), ...argv] : [piCliPath(), ...resourceArgs, ...piArgs, ...argv];
 
 const child = spawn(process.execPath, args, {
   stdio: "inherit",

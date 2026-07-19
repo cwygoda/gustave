@@ -25,7 +25,11 @@ function parseAgent(file: string, projectLocal: boolean): AgentDef | null {
     system = match[2];
     for (const line of match[1].split(/\r?\n/)) {
       const idx = line.indexOf(":");
-      if (idx > -1) meta[line.slice(0, idx).trim()] = line.slice(idx + 1).trim().replace(/^['"]|['"]$/g, "");
+      if (idx > -1)
+        meta[line.slice(0, idx).trim()] = line
+          .slice(idx + 1)
+          .trim()
+          .replace(/^['"]|['"]$/g, "");
     }
   }
   const name = meta.name ?? file.split(/[\\/]/).pop()?.replace(/\.md$/, "");
@@ -43,7 +47,9 @@ function parseAgent(file: string, projectLocal: boolean): AgentDef | null {
 
 function listMd(dir: string) {
   if (!existsSync(dir)) return [] as string[];
-  return readdirSync(dir).filter((name) => name.endsWith(".md")).map((name) => join(dir, name));
+  return readdirSync(dir)
+    .filter((name) => name.endsWith(".md"))
+    .map((name) => join(dir, name));
 }
 
 function discoverAgents(cwd: string) {
@@ -72,8 +78,12 @@ function runPi(args: string[], input: string, cwd: string, signal: AbortSignal) 
     });
     let stdout = "";
     let stderr = "";
-    child.stdout.on("data", (chunk) => { stdout += chunk.toString(); });
-    child.stderr.on("data", (chunk) => { stderr += chunk.toString(); });
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString();
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
     const abort = () => child.kill("SIGTERM");
     signal.addEventListener("abort", abort, { once: true });
     child.on("error", reject);
@@ -92,7 +102,9 @@ export default function subagentsExtension(pi: ExtensionAPI) {
     parameters: Type.Object({}),
     async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
       const agents = discoverAgents(ctx.cwd);
-      const text = agents.map((a) => `- ${a.name}${a.projectLocal ? " (project)" : ""}: ${a.description}`).join("\n") || "No subagents found.";
+      const text =
+        agents.map((a) => `- ${a.name}${a.projectLocal ? " (project)" : ""}: ${a.description}`).join("\n") ||
+        "No subagents found.";
       return { content: [{ type: "text", text }], details: { agents } };
     },
   });
@@ -112,14 +124,28 @@ export default function subagentsExtension(pi: ExtensionAPI) {
       const agents = discoverAgents(ctx.cwd);
       const agent = agents.find((a) => a.name === params.agent);
       if (!agent) {
-        return { content: [{ type: "text", text: `Unknown subagent '${params.agent}'. Use subagents_list first.` }], details: { found: false } };
+        return {
+          content: [{ type: "text", text: `Unknown subagent '${params.agent}'. Use subagents_list first.` }],
+          details: { found: false },
+        };
       }
 
       if (agent.projectLocal && params.allowProjectAgent !== true) {
         if (ctx.mode !== "tui") {
-          return { content: [{ type: "text", text: `Project-local subagent '${agent.name}' requires explicit allowProjectAgent=true in an interactive session.` }], details: { allowed: false } };
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Project-local subagent '${agent.name}' requires explicit allowProjectAgent=true in an interactive session.`,
+              },
+            ],
+            details: { allowed: false },
+          };
         }
-        const choice = await ctx.ui.select(`Run project-local subagent '${agent.name}' from ${agent.source}?`, ["Allow once", "Block"]);
+        const choice = await ctx.ui.select(`Run project-local subagent '${agent.name}' from ${agent.source}?`, [
+          "Allow once",
+          "Block",
+        ]);
         if (choice !== "Allow once") {
           return { content: [{ type: "text", text: "Blocked project-local subagent." }], details: { allowed: false } };
         }
@@ -130,11 +156,16 @@ export default function subagentsExtension(pi: ExtensionAPI) {
       if (model) childArgs.push("--model", String(model));
       const toolList = params.tools?.length ? params.tools.join(",") : agent.tools;
       if (toolList) childArgs.push("--tools", String(toolList));
-      childArgs.push("--system-prompt", `${agent.system}\n\nYou are a Gustave subagent. Return concise, evidence-backed findings to the parent agent.`);
+      childArgs.push(
+        "--system-prompt",
+        `${agent.system}\n\nYou are a Gustave subagent. Return concise, evidence-backed findings to the parent agent.`
+      );
 
       const result = await runPi(childArgs, String(params.task), ctx.cwd, signal ?? new AbortController().signal);
       const ok = result.code === 0;
-      const text = ok ? result.stdout.trim() : `Subagent exited with code ${result.code}.\n\nSTDOUT:\n${result.stdout}\n\nSTDERR:\n${result.stderr}`;
+      const text = ok
+        ? result.stdout.trim()
+        : `Subagent exited with code ${result.code}.\n\nSTDOUT:\n${result.stdout}\n\nSTDERR:\n${result.stderr}`;
       return {
         content: [{ type: "text", text: text.slice(0, 50000) }],
         details: { ok, code: result.code, agent, stdout: result.stdout, stderr: result.stderr },

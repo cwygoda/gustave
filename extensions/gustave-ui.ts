@@ -82,11 +82,13 @@ export default function gustaveUiExtension(pi: ExtensionAPI) {
   });
 
   pi.on("turn_start", async (_event, ctx) => {
-    if (ctx.mode === "tui") ctx.ui.setStatus("gustave", ctx.ui.theme.fg("accent", "◆") + ctx.ui.theme.fg("muted", " thinking"));
+    if (ctx.mode === "tui")
+      ctx.ui.setStatus("gustave", ctx.ui.theme.fg("accent", "◆") + ctx.ui.theme.fg("muted", " thinking"));
   });
 
   pi.on("turn_end", async (_event, ctx) => {
-    if (ctx.mode === "tui") ctx.ui.setStatus("gustave", ctx.ui.theme.fg("success", "◆") + ctx.ui.theme.fg("dim", " ready"));
+    if (ctx.mode === "tui")
+      ctx.ui.setStatus("gustave", ctx.ui.theme.fg("success", "◆") + ctx.ui.theme.fg("dim", " ready"));
   });
 
   pi.registerCommand("gustave", {

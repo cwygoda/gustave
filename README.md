@@ -98,6 +98,50 @@ Disable only if necessary:
 GUSTAVE_DISABLE_GIT_COMMIT_POLICY=1 gustave ...
 ```
 
+## Development tooling with mise
+
+Gustave uses mise to pin local development tools:
+
+```bash
+mise install
+mise run check
+```
+
+Pinned tools in `.mise.toml`:
+
+- Node.js
+- pnpm
+- ShellCheck
+- shfmt
+
+Lint/format commands:
+
+```bash
+mise run lint
+mise run format
+pnpm lint
+pnpm format
+```
+
+Install repository Git hooks:
+
+```bash
+mise run install-hooks
+# or
+pnpm hooks:install
+```
+
+Hooks:
+
+- `pre-commit` runs lint + typecheck through mise when available.
+- `commit-msg` enforces Conventional Commits and blocks agent attribution lines.
+
+Bypass pre-commit lint only when necessary:
+
+```bash
+GUSTAVE_SKIP_LINT_HOOK=1 git commit ...
+```
+
 ## Updating with self-tests
 
 ```bash

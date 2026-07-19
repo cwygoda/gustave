@@ -20,7 +20,14 @@ function memoryDir() {
 }
 
 function safeKey(key: string) {
-  return key.trim().toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 100) || "memory";
+  return (
+    key
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9._-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 100) || "memory"
+  );
 }
 
 function fileFor(key: string) {
@@ -57,7 +64,9 @@ export default function memoryExtension(pi: ExtensionAPI) {
       const now = new Date().toISOString();
       let createdAt = now;
       if (existsSync(path)) {
-        try { createdAt = (JSON.parse(readFileSync(path, "utf8")) as MemoryRecord).createdAt ?? now; } catch {}
+        try {
+          createdAt = (JSON.parse(readFileSync(path, "utf8")) as MemoryRecord).createdAt ?? now;
+        } catch {}
       }
       const record: MemoryRecord = {
         key,
@@ -90,7 +99,9 @@ export default function memoryExtension(pi: ExtensionAPI) {
         .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
         .slice(0, limit);
       const text = records.length
-        ? records.map((r) => `## ${r.key}\nupdated: ${r.updatedAt}\ntags: ${r.tags.join(", ") || "-"}\n\n${r.content}`).join("\n\n")
+        ? records
+            .map((r) => `## ${r.key}\nupdated: ${r.updatedAt}\ntags: ${r.tags.join(", ") || "-"}\n\n${r.content}`)
+            .join("\n\n")
         : "No matching memories.";
       return { content: [{ type: "text", text }], details: { records } };
     },
@@ -116,7 +127,12 @@ export default function memoryExtension(pi: ExtensionAPI) {
     description: "List Gustave memories",
     handler: async (_args, ctx) => {
       const records = readAll().sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-      ctx.ui.notify(records.length ? records.map((r) => `${r.key} (${r.tags.join(", ") || "no tags"})`).join("\n") : "No memories yet.", "info");
+      ctx.ui.notify(
+        records.length
+          ? records.map((r) => `${r.key} (${r.tags.join(", ") || "no tags"})`).join("\n")
+          : "No memories yet.",
+        "info"
+      );
     },
   });
 }

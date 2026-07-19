@@ -43,12 +43,7 @@ export default function plannotatorExtension(pi: ExtensionAPI) {
       const markerStart = `<!-- gustave-plan:${title} -->`;
       const markerEnd = `<!-- /gustave-plan:${title} -->`;
       const now = new Date().toISOString();
-      const lines = [
-        markerStart,
-        `## ${title}`,
-        "",
-        `Updated: ${now}`,
-      ];
+      const lines = [markerStart, `## ${title}`, "", `Updated: ${now}`];
       if (params.summary) lines.push("", String(params.summary));
       const items = (params.items ?? []) as Array<{ text: string; done?: boolean }>;
       if (items.length) {
@@ -67,7 +62,10 @@ export default function plannotatorExtension(pi: ExtensionAPI) {
         next = `${existing}${existing.endsWith("\n") || existing.length === 0 ? "" : "\n"}${block}`;
       }
       writeFileSync(file, next);
-      return { content: [{ type: "text", text: `Annotated ${file}` }], details: { file, title, itemCount: items.length } };
+      return {
+        content: [{ type: "text", text: `Annotated ${file}` }],
+        details: { file, title, itemCount: items.length },
+      };
     },
   });
 
@@ -78,7 +76,8 @@ export default function plannotatorExtension(pi: ExtensionAPI) {
     parameters: Type.Object({ file: Type.Optional(Type.String()) }),
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       const file = resolve(ctx.cwd, String(params.file ?? defaultPlanFile));
-      if (!existsSync(file)) return { content: [{ type: "text", text: `${file} does not exist.` }], details: { file, exists: false } };
+      if (!existsSync(file))
+        return { content: [{ type: "text", text: `${file} does not exist.` }], details: { file, exists: false } };
       return { content: [{ type: "text", text: readFileSync(file, "utf8") }], details: { file, exists: true } };
     },
   });

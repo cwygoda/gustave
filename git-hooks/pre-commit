@@ -1,0 +1,19 @@
+#!/bin/sh
+set -eu
+
+if [ "${GUSTAVE_SKIP_LINT_HOOK:-0}" = "1" ]; then
+	echo "Skipping Gustave pre-commit lint hook because GUSTAVE_SKIP_LINT_HOOK=1"
+	exit 0
+fi
+
+if command -v mise >/dev/null 2>&1; then
+	exec mise exec -- pnpm precommit
+fi
+
+if command -v pnpm >/dev/null 2>&1; then
+	exec pnpm precommit
+fi
+
+echo "Gustave pre-commit hook needs mise or pnpm." >&2
+echo "Install mise, then run: mise install" >&2
+exit 1

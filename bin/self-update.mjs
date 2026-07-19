@@ -16,14 +16,18 @@ function run(label, command, args, env = {}) {
   }
 }
 
-let gitEnv = {};
+const gitEnv = {};
 const remote = spawnSync("git", ["remote", "-v"], { cwd: root, encoding: "utf8" });
 if (/github\.com[:/]cwygoda\//.test(`${remote.stdout}\n${remote.stderr}`)) {
-  const detect = spawnSync(process.execPath, ["bin/github-ssh.mjs", "--owner", process.env.GUSTAVE_GITHUB_OWNER || "cwygoda", "--no-persist"], {
-    cwd: root,
-    encoding: "utf8",
-    timeout: 30000,
-  });
+  const detect = spawnSync(
+    process.execPath,
+    ["bin/github-ssh.mjs", "--owner", process.env.GUSTAVE_GITHUB_OWNER || "cwygoda", "--no-persist"],
+    {
+      cwd: root,
+      encoding: "utf8",
+      timeout: 30000,
+    }
+  );
   if (detect.status === 0 && detect.stdout.trim()) {
     gitEnv.GIT_SSH_COMMAND = detect.stdout.trim().split(/\r?\n/)[0];
     console.log(`Using detected GitHub SSH command for ${process.env.GUSTAVE_GITHUB_OWNER || "cwygoda"}.`);

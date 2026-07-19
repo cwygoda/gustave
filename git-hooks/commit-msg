@@ -1,5 +1,5 @@
 #!/bin/sh
 # Gustave commit policy hook. Enforced only inside Gustave via GIT_CONFIG_* env.
-HOOK_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+HOOK_DIR=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 NODE_BIN=${GUSTAVE_NODE:-node}
 exec "$NODE_BIN" "$HOOK_DIR/../bin/commit-msg-hook.mjs" "$@"

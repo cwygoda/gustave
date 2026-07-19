@@ -12,14 +12,6 @@ function shellQuote(value) {
   return `'${value.replace(/'/g, `'"'"'`)}'`;
 }
 
-function run(command, args, env = {}) {
-  return spawnSync(command, args, {
-    env: { ...process.env, ...env },
-    encoding: "utf8",
-    timeout: 15000,
-  });
-}
-
 function sshIdentifiesAs(command, owner) {
   const result = spawnSync("sh", ["-lc", `${command} -T git@github.com`], {
     encoding: "utf8",
@@ -67,13 +59,24 @@ function findCommand(owner) {
 }
 
 function readJson(path) {
-  try { return JSON.parse(readFileSync(path, "utf8")); } catch { return {}; }
+  try {
+    return JSON.parse(readFileSync(path, "utf8"));
+  } catch {
+    return {};
+  }
 }
 
 function deepMerge(a, b) {
   const out = { ...a };
   for (const [key, value] of Object.entries(b)) {
-    if (value && typeof value === "object" && !Array.isArray(value) && out[key] && typeof out[key] === "object" && !Array.isArray(out[key])) {
+    if (
+      value &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      out[key] &&
+      typeof out[key] === "object" &&
+      !Array.isArray(out[key])
+    ) {
       out[key] = deepMerge(out[key], value);
     } else {
       out[key] = value;
@@ -82,7 +85,9 @@ function deepMerge(a, b) {
   return out;
 }
 
-const owner = process.argv.includes("--owner") ? process.argv[process.argv.indexOf("--owner") + 1] : (process.env.GUSTAVE_GITHUB_OWNER || "cwygoda");
+const owner = process.argv.includes("--owner")
+  ? process.argv[process.argv.indexOf("--owner") + 1]
+  : process.env.GUSTAVE_GITHUB_OWNER || "cwygoda";
 const persist = !process.argv.includes("--no-persist");
 const command = findCommand(owner);
 
@@ -95,7 +100,9 @@ if (!command) {
 console.log(command);
 
 if (persist) {
-  const gustaveHome = process.env.GUSTAVE_HOME ? resolve(expandHome(process.env.GUSTAVE_HOME)) : join(homedir(), ".gustave");
+  const gustaveHome = process.env.GUSTAVE_HOME
+    ? resolve(expandHome(process.env.GUSTAVE_HOME))
+    : join(homedir(), ".gustave");
   mkdirSync(gustaveHome, { recursive: true });
   const configFile = join(gustaveHome, "config.json");
   const config = deepMerge(readJson(configFile), { env: { GIT_SSH_COMMAND: command, GUSTAVE_GITHUB_OWNER: owner } });

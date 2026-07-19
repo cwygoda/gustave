@@ -55,11 +55,20 @@
     "gustave": "node ./bin/gustave.mjs",
     "install-bin": "node ./bin/gustave.mjs install-bin",
     "self-test": "node ./bin/gustave.mjs self-test",
+    "hooks:install": "git config core.hooksPath git-hooks",
+    "format": "biome format --write . && shfmt -w install.sh git-hooks/*",
+    "lint:biome": "biome lint .",
+    "lint:markdown": "markdownlint-cli2",
+    "lint:shell": "shellcheck install.sh git-hooks/* && shfmt -d install.sh git-hooks/*",
+    "lint": "pnpm lint:biome && pnpm lint:markdown && pnpm lint:shell",
     "typecheck": "tsc -p tsconfig.json",
-    "check": "npm run typecheck && node ./bin/gustave.mjs --help"
+    "precommit": "pnpm lint && pnpm typecheck",
+    "check": "pnpm typecheck && pnpm lint && node ./bin/gustave.mjs self-test"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.4",
     "@types/node": "^26.1.1",
+    "markdownlint-cli2": "^0.23.1",
     "typescript": "^7.0.2"
   }
 }

@@ -1,0 +1,25 @@
+[tools]
+node = "24.14.1"
+pnpm = "11.0.4"
+shellcheck = "latest"
+shfmt = "latest"
+
+[tasks.lint]
+description = "Run all linters"
+run = "pnpm lint"
+
+[tasks.format]
+description = "Format source files"
+run = "pnpm format"
+
+[tasks.check]
+description = "Run typecheck, linters, and Gustave self-test"
+run = "pnpm check"
+
+[tasks.self-test]
+description = "Run Gustave self-test"
+run = "pnpm self-test"
+
+[tasks.install-hooks]
+description = "Install repository git hooks"
+run = "git config core.hooksPath git-hooks"
