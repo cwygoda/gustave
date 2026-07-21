@@ -6,6 +6,32 @@ if [ "${GUSTAVE_SKIP_LINT_HOOK:-0}" = "1" ]; then
 	exit 0
 fi
 
+HOOK_DIR=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
+GUSTAVE_ROOT=$(CDPATH='' cd -- "$HOOK_DIR/.." && pwd)
+
+# Gustave enforces hooks via an environment-only core.hooksPath override, so this
+# hook also fires inside unrelated repositories (e.g. Python projects). Only run
+# Gustave's own lint/typecheck when the commit is actually in the Gustave repo.
+REPO_ROOT=""
+if repo_root=$(git rev-parse --show-toplevel 2>/dev/null); then
+	REPO_ROOT=$(CDPATH='' cd -- "$repo_root" && pwd)
+fi
+
+if [ "$REPO_ROOT" != "$GUSTAVE_ROOT" ]; then
+	# Not the Gustave repo: defer to a repo-local pre-commit hook if one exists.
+	if git_dir=$(git rev-parse --git-dir 2>/dev/null); then
+		case "$git_dir" in
+		/*) : ;;
+		*) git_dir=$(CDPATH='' cd -- "$git_dir" && pwd) ;;
+		esac
+		repo_hook="$git_dir/hooks/pre-commit"
+		if [ -x "$repo_hook" ]; then
+			exec "$repo_hook" "$@"
+		fi
+	fi
+	exit 0
+fi
+
 if command -v mise >/dev/null 2>&1; then
 	exec mise exec -- pnpm precommit
 fi
