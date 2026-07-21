@@ -308,13 +308,14 @@ if (argv[0] === "pi-help") {
 const piArgs = Array.isArray(config.piArgs) ? config.piArgs : [];
 const bundledExtensions = [
   ["--extension", packageFile("pi-powerline-footer", "index.ts")],
+  ["--extension", packageFile("@plannotator/pi-extension", "index.ts")],
   ...[
     "ask-user.ts",
+    "bedrock-auth.ts",
     "game-sounds.ts",
     "gustave-ui.ts",
     "mcporter.ts",
     "memory.ts",
-    "plannotator.ts",
     "research.ts",
     "subagents.ts",
   ].map((file) => ["--extension", join(root, "extensions", file)]),

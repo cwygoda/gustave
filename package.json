@@ -20,6 +20,7 @@
     "@citedy/game-sounds": "^3.0.1",
     "@earendil-works/pi-coding-agent": "^0.80.7",
     "@getpaseo/cli": "^0.1.110",
+    "@plannotator/pi-extension": "^0.24.1",
     "@sveltejs/mcp": "^0.1.25",
     "agent-browser": "^0.32.2",
     "mcporter": "^0.12.3",
@@ -34,6 +35,7 @@
   "pi": {
     "extensions": [
       "./node_modules/pi-powerline-footer/index.ts",
+      "./node_modules/@plannotator/pi-extension",
       "./extensions"
     ],
     "skills": [
