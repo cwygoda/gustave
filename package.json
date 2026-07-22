@@ -67,8 +67,9 @@
     "lint:shell": "shellcheck install.sh git-hooks/* && shfmt -d install.sh git-hooks/*",
     "lint": "pnpm lint:biome && pnpm lint:markdown && pnpm lint:shell",
     "typecheck": "tsc -p tsconfig.json",
+    "test": "node --test \"test/**/*.test.ts\"",
     "precommit": "pnpm lint && pnpm typecheck",
-    "check": "pnpm typecheck && pnpm lint && node ./bin/gustave.mjs self-test"
+    "check": "pnpm typecheck && pnpm lint && pnpm test && node ./bin/gustave.mjs self-test"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.4",

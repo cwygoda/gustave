@@ -250,6 +250,22 @@ Example for Bedrock:
 
 `envFiles` support simple `KEY=value` lines.
 
+### Bedrock credential refresh
+
+When the provider is Amazon Bedrock and a request fails with `401`/`403`
+(expired AWS session), Gustave offers to run a login command to refresh your
+credentials, then optionally retries your last message. AWS profile/SSO
+credentials are re-read from the credential chain on the next request, so a
+successful login is enough to continue.
+
+- Default command: `aws login`
+- Override with `GUSTAVE_BEDROCK_LOGIN_CMD` (env or config `env`), e.g.
+  `"aws sso login --profile work-bedrock"`
+- Trigger a refresh manually anytime with `/bedrock-login`
+
+The command must be a real executable (not a shell alias) since it runs without
+a shell.
+
 ## Bundled capabilities
 
 | Area | Tools/commands | Purpose |
@@ -263,6 +279,7 @@ Example for Bedrock:
 | Plans | `plan_annotate`, `plan_read` | markdown plan tracking |
 | Subagents | `subagents_list`, `subagent` | isolated specialized pi subprocesses |
 | Credential firewall | `/credential-firewall` | keeps `gh`/`aws` usable while blocking known credential extraction and redacting accidental token leaks from tool output |
+| Bedrock auth | `/bedrock-login`, `GUSTAVE_BEDROCK_LOGIN_CMD` | detects expired Amazon Bedrock/AWS sessions (401/403) and refreshes creds via a login command (`aws login`), then offers to retry |
 | MCP | `mcp_list`, `mcp_call`, `svelte_mcp`, `gustave mcporter` | MCP access through MCPorter |
 | Svelte | `gustave svelte-mcp ...`, `svelte_mcp` | official Svelte MCP via `https://mcp.svelte.dev/mcp` |
 | Browser | `gustave agent-browser ...`, MCP server `agent-browser` | token-efficient browser automation |
