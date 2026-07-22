@@ -48,14 +48,6 @@
       "./themes"
     ]
   },
-  "pnpm": {
-    "ignoredBuiltDependencies": [
-      "@google/genai",
-      "agent-browser",
-      "node-pty",
-      "protobufjs"
-    ]
-  },
   "scripts": {
     "gustave": "node ./bin/gustave.mjs",
     "install-bin": "node ./bin/gustave.mjs install-bin",

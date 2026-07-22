@@ -1,0 +1,5 @@
+allowBuilds:
+  '@google/genai': false
+  agent-browser: false
+  node-pty: false
+  protobufjs: false
