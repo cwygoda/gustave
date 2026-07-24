@@ -6,6 +6,11 @@ import { spawnSync } from "node:child_process";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const online = process.argv.includes("--online");
+const upgrade = process.argv.includes("--upgrade");
+
+// pi packages whose latest release should be pulled in with --upgrade.
+// pi-coding-agent is the direct gate; the pi-* peers ride along via its tree.
+const UPGRADE_TARGETS = ["@earendil-works/pi-coding-agent@latest"];
 
 function run(label, command, args, env = {}) {
   process.stdout.write(`\n▶ ${label}\n`);
@@ -39,7 +44,13 @@ if (/github\.com[:/]cwygoda\//.test(`${remote.stdout}\n${remote.stderr}`)) {
 if (existsSync(resolve(root, ".git"))) run("git pull --ff-only", "git", ["pull", "--ff-only"], gitEnv);
 const pnpm = spawnSync("pnpm", ["--version"], { encoding: "utf8" });
 const packageManager = pnpm.status === 0 ? "pnpm" : "npm";
-run(`${packageManager} install`, packageManager, ["install", "--ignore-scripts"]);
+
+if (upgrade) {
+  // `pnpm add <pkg>@latest` bumps package.json past the caret and refreshes the lockfile.
+  run(`${packageManager} add pi@latest`, packageManager, ["add", "--ignore-scripts", ...UPGRADE_TARGETS]);
+} else {
+  run(`${packageManager} install`, packageManager, ["install", "--ignore-scripts"]);
+}
 run("self-test", process.execPath, ["bin/self-test.mjs", ...(online ? ["--online"] : [])]);
 run("install absolute user-bin launcher", process.execPath, ["bin/install-user-bin.mjs"]);
 console.log("\nGustave update complete.");

@@ -162,6 +162,12 @@ Include the live Svelte MCP smoke test:
 gustave self-update --online
 ```
 
+Bump pi to its latest release (past the `^` caret in `package.json`) and refresh the lockfile before testing:
+
+```bash
+gustave self-update --upgrade
+```
+
 Run tests without updating:
 
 ```bash
@@ -201,7 +207,7 @@ That persisted `GIT_SSH_COMMAND` is injected into Gustave/pi/subagents, so Git o
 ```bash
 gustave [pi options] [@files...] [messages...]
 gustave update [pi update options]      # pi update passthrough
-gustave self-update [--online]          # Gustave update + tests
+gustave self-update [--online] [--upgrade]  # Gustave update + tests (--upgrade bumps pi to latest)
 gustave self-test [--online]
 gustave install-bin [--dir ~/.local/bin]
 gustave github-ssh [--owner cwygoda]
