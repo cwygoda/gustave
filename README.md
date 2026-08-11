@@ -245,11 +245,11 @@ Example for Bedrock:
 ```json
 {
   "env": {
-    "AWS_PROFILE": "work-bedrock",
+    "AWS_PROFILE": "dev",
     "AWS_REGION": "us-east-1"
   },
   "envFiles": ["~/.gustave/env"],
-  "piArgs": ["--provider", "bedrock"],
+  "piArgs": ["--provider", "amazon-bedrock"],
   "theme": "gustave"
 }
 ```
@@ -258,19 +258,27 @@ Example for Bedrock:
 
 ### Bedrock credential refresh
 
-When the provider is Amazon Bedrock and a request fails with `401`/`403`
-(expired AWS session), Gustave offers to run a login command to refresh your
-credentials, then optionally retries your last message. AWS profile/SSO
-credentials are re-read from the credential chain on the next request, so a
-successful login is enough to continue.
+When the provider is Amazon Bedrock and a request fails with `401`/`403` or an
+AWS login-token error, Gustave first tries to renew the short-lived session from
+the cached AWS CLI refresh token. If the refresh token is missing or invalid, it
+offers to run browser login and can retry your last message.
 
-- Default command: `aws login`
-- Override with `GUSTAVE_BEDROCK_LOGIN_CMD` (env or config `env`), e.g.
-  `"aws sso login --profile work-bedrock"`
-- Trigger a refresh manually anytime with `/bedrock-login`
+- Default profile: `dev` (`GUSTAVE_BEDROCK_AWS_PROFILE` or
+  `GUSTAVE_BEDROCK_PROFILE` overrides it; ambient `AWS_PROFILE` is ignored for
+  Bedrock auth unless `GUSTAVE_BEDROCK_SET_AWS_PROFILE=0`)
+- Cached refresh command:
+  `aws sts get-caller-identity --profile=dev --output json --no-cli-pager`
+- Browser login command: `aws login --profile=dev`
+- Override browser login with `GUSTAVE_BEDROCK_LOGIN_CMD`
+- Override cached refresh with `GUSTAVE_BEDROCK_REFRESH_CMD`
+- Disable proactive cached refresh with `GUSTAVE_BEDROCK_AUTO_REFRESH=0`
+- Disable Gustave setting `AWS_PROFILE` from the Bedrock profile with
+  `GUSTAVE_BEDROCK_SET_AWS_PROFILE=0`
+- Trigger manually with `/bedrock-login`; use `/bedrock-login login` to skip the
+  cached-refresh attempt
 
-The command must be a real executable (not a shell alias) since it runs without
-a shell.
+Commands must be real executables (not shell aliases) because they run without a
+shell.
 
 ## Bundled capabilities
 
@@ -285,7 +293,7 @@ a shell.
 | Plans | `plan_annotate`, `plan_read` | markdown plan tracking |
 | Subagents | `subagents_list`, `subagent` | isolated specialized pi subprocesses |
 | Credential firewall | `/credential-firewall` | keeps `gh`/`aws` usable while blocking known credential extraction and redacting accidental token leaks from tool output |
-| Bedrock auth | `/bedrock-login`, `GUSTAVE_BEDROCK_LOGIN_CMD` | detects expired Amazon Bedrock/AWS sessions (401/403) and refreshes creds via a login command (`aws login`), then offers to retry |
+| Bedrock auth | `/bedrock-login`, `GUSTAVE_BEDROCK_*` | renews Amazon Bedrock AWS CLI login sessions from cached refresh tokens, falls back to `aws login --profile=dev`, then offers to retry |
 | MCP | `mcp_list`, `mcp_call`, `svelte_mcp`, `gustave mcporter` | MCP access through MCPorter |
 | Svelte | `gustave svelte-mcp ...`, `svelte_mcp` | official Svelte MCP via `https://mcp.svelte.dev/mcp` |
 | Browser | `gustave agent-browser ...`, MCP server `agent-browser` | token-efficient browser automation |
