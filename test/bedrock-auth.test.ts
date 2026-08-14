@@ -5,9 +5,11 @@ import {
   bedrockProfile,
   cachedRefreshCommand,
   formatCommand,
+  applyAwsCredentialsToEnv,
   isBedrockAuthError,
   isBedrockProvider,
   loginCommand,
+  parseAwsProcessCredentials,
   shouldAutoRefresh,
   splitCommandLine,
 } from "../extensions/bedrock-auth.ts";
@@ -30,6 +32,7 @@ const EXPIRED_MESSAGES = [
   "Token has expired and refresh failed",
   "Unable to refresh credentials due to insufficient permissions.",
   "credentials have expired",
+  "Error: Could not load credentials from any providers",
 ];
 
 const UNRELATED_MESSAGES = [
@@ -81,11 +84,27 @@ test("loginCommand defaults to aws login with the dev profile", () => {
   });
 });
 
-test("cachedRefreshCommand defaults to a non-browser profile validation command", () => {
+test("cachedRefreshCommand defaults to exporting fresh profile credentials", () => {
   assert.deepEqual(cachedRefreshCommand({ AWS_PROFILE: "dev" }), {
-    command: "aws",
-    args: ["sts", "get-caller-identity", "--profile=dev", "--output", "json", "--no-cli-pager"],
-    display: "aws sts get-caller-identity --profile=dev --output json --no-cli-pager",
+    command: "env",
+    args: [
+      "-u",
+      "AWS_ACCESS_KEY_ID",
+      "-u",
+      "AWS_SECRET_ACCESS_KEY",
+      "-u",
+      "AWS_SESSION_TOKEN",
+      "-u",
+      "AWS_CREDENTIAL_EXPIRATION",
+      "aws",
+      "configure",
+      "export-credentials",
+      "--profile=dev",
+      "--format",
+      "process",
+    ],
+    display:
+      "env -u AWS_ACCESS_KEY_ID -u AWS_SECRET_ACCESS_KEY -u AWS_SESSION_TOKEN -u AWS_CREDENTIAL_EXPIRATION aws configure export-credentials --profile=dev --format process",
   });
 });
 
@@ -102,4 +121,66 @@ test("command overrides are shell-word parsed and display-quoted", () => {
 test("shouldAutoRefresh can be disabled", () => {
   assert.equal(shouldAutoRefresh({}), true);
   assert.equal(shouldAutoRefresh({ GUSTAVE_BEDROCK_AUTO_REFRESH: "0" }), false);
+});
+
+test("parseAwsProcessCredentials reads AWS CLI process JSON without logging secrets", () => {
+  assert.deepEqual(
+    parseAwsProcessCredentials(
+      JSON.stringify({
+        Version: 1,
+        AccessKeyId: "ASIATESTKEY123456789",
+        SecretAccessKey: "secret",
+        SessionToken: "session",
+        Expiration: "2026-01-01T00:00:00Z",
+      })
+    ),
+    {
+      AccessKeyId: "ASIATESTKEY123456789",
+      SecretAccessKey: "secret",
+      SessionToken: "session",
+      Expiration: "2026-01-01T00:00:00Z",
+    }
+  );
+});
+
+test("parseAwsProcessCredentials accepts env-style command overrides", () => {
+  assert.deepEqual(
+    parseAwsProcessCredentials("AWS_ACCESS_KEY_ID='key'\nAWS_SECRET_ACCESS_KEY=secret\nAWS_SESSION_TOKEN=session"),
+    {
+      AccessKeyId: "key",
+      SecretAccessKey: "secret",
+      SessionToken: "session",
+      Expiration: undefined,
+    }
+  );
+});
+
+test("applyAwsCredentialsToEnv updates the running process for the Bedrock SDK", () => {
+  const previous = {
+    AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
+    AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
+    AWS_SESSION_TOKEN: process.env.AWS_SESSION_TOKEN,
+    AWS_CREDENTIAL_EXPIRATION: process.env.AWS_CREDENTIAL_EXPIRATION,
+  };
+
+  try {
+    assert.equal(
+      applyAwsCredentialsToEnv({
+        AccessKeyId: "key",
+        SecretAccessKey: "secret",
+        SessionToken: "session",
+        Expiration: "2026-01-01T00:00:00Z",
+      }),
+      true
+    );
+    assert.equal(process.env.AWS_ACCESS_KEY_ID, "key");
+    assert.equal(process.env.AWS_SECRET_ACCESS_KEY, "secret");
+    assert.equal(process.env.AWS_SESSION_TOKEN, "session");
+    assert.equal(process.env.AWS_CREDENTIAL_EXPIRATION, "2026-01-01T00:00:00Z");
+  } finally {
+    for (const [key, value] of Object.entries(previous)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
 });

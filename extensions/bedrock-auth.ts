@@ -12,6 +12,12 @@ const LOGIN_TIMEOUT_MS = 5 * 60_000;
 const CACHED_REFRESH_TIMEOUT_MS = 30_000;
 const CACHED_REFRESH_SUCCESS_TTL_MS = 8 * 60_000;
 const CACHED_REFRESH_FAILURE_BACKOFF_MS = 60_000;
+const AWS_EXPORTED_CREDENTIAL_KEYS = [
+  "AWS_ACCESS_KEY_ID",
+  "AWS_SECRET_ACCESS_KEY",
+  "AWS_SESSION_TOKEN",
+  "AWS_CREDENTIAL_EXPIRATION",
+] as const;
 
 // Bedrock/AWS login credential expiry frequently surfaces as a thrown error from
 // the AWS credential provider chain *before* any HTTP request is made, so it
@@ -19,7 +25,7 @@ const CACHED_REFRESH_FAILURE_BACKOFF_MS = 60_000;
 // strings so we can still offer to reauthenticate. See
 // @aws-sdk/credential-provider-login and the AWS CLI `aws login` cache flow.
 export const AUTH_FAILURE_PATTERN =
-  /session has expired|please reauthenticate|re-?authenticate|aws login|failed to load a token for session|token validation failed|createoauth2token|dpop|expiredtokenexception|(?:token|credential(?:s)?|session|sso)[^.]*expired|expired[^.]*(?:token|credential|session)|the security token included in the request is (?:expired|invalid)|unable to refresh credentials/i;
+  /session has expired|please reauthenticate|re-?authenticate|aws login|failed to load a token for session|token validation failed|createoauth2token|dpop|expiredtokenexception|could not load credentials from any providers|unable to load credentials|(?:token|credential(?:s)?|session|sso)[^.]*expired|expired[^.]*(?:token|credential|session)|the security token included in the request is (?:expired|invalid)|unable to refresh credentials/i;
 
 export function isBedrockAuthError(text: string | undefined): boolean {
   if (!text) return false;
@@ -105,13 +111,25 @@ export function cachedRefreshCommand(env: Record<string, string | undefined> = p
   display: string;
 } {
   const raw = env.GUSTAVE_BEDROCK_REFRESH_CMD?.trim();
-  const parts = raw
-    ? splitCommandLine(raw)
-    : ["aws", "sts", "get-caller-identity", `--profile=${bedrockProfile(env)}`, "--output", "json", "--no-cli-pager"];
-  const [command = "aws", ...args] =
-    parts.length > 0
-      ? parts
-      : ["aws", "sts", "get-caller-identity", `--profile=${bedrockProfile(env)}`, "--output", "json", "--no-cli-pager"];
+  const defaultParts = [
+    "env",
+    "-u",
+    "AWS_ACCESS_KEY_ID",
+    "-u",
+    "AWS_SECRET_ACCESS_KEY",
+    "-u",
+    "AWS_SESSION_TOKEN",
+    "-u",
+    "AWS_CREDENTIAL_EXPIRATION",
+    "aws",
+    "configure",
+    "export-credentials",
+    `--profile=${bedrockProfile(env)}`,
+    "--format",
+    "process",
+  ];
+  const parts = raw ? splitCommandLine(raw) : defaultParts;
+  const [command = "env", ...args] = parts.length > 0 ? parts : defaultParts;
   return { command, args, display: formatCommand(command, args) };
 }
 
@@ -141,6 +159,71 @@ function summarizeCommandFailure(stdout: string, stderr: string): string {
   const detail = redactCredentialLikeText((stderr || stdout || "").trim());
   if (!detail) return "";
   return detail.split(/\r?\n/).slice(0, 4).join("\n").slice(0, 800);
+}
+
+type AwsProcessCredentials = {
+  AccessKeyId?: string;
+  SecretAccessKey?: string;
+  SessionToken?: string;
+  Expiration?: string;
+};
+
+export function parseAwsProcessCredentials(stdout: string): AwsProcessCredentials | undefined {
+  const trimmed = stdout.trim();
+  if (!trimmed) return undefined;
+
+  try {
+    const parsed = JSON.parse(trimmed) as AwsProcessCredentials;
+    if (parsed.AccessKeyId && parsed.SecretAccessKey) {
+      return {
+        AccessKeyId: parsed.AccessKeyId,
+        SecretAccessKey: parsed.SecretAccessKey,
+        SessionToken: parsed.SessionToken,
+        Expiration: parsed.Expiration,
+      };
+    }
+  } catch {
+    // Allow command overrides that emit env-style lines instead of process JSON.
+  }
+
+  const envValues: Record<string, string> = {};
+  for (const line of trimmed.split(/\r?\n/)) {
+    const match = line.match(/^\s*(?:export\s+)?(AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY|AWS_SESSION_TOKEN|AWS_CREDENTIAL_EXPIRATION)=(.*)\s*$/);
+    if (!match) continue;
+    envValues[match[1]] = match[2].trim().replace(/^['"]|['"]$/g, "");
+  }
+
+  if (!envValues.AWS_ACCESS_KEY_ID || !envValues.AWS_SECRET_ACCESS_KEY) return undefined;
+  return {
+    AccessKeyId: envValues.AWS_ACCESS_KEY_ID,
+    SecretAccessKey: envValues.AWS_SECRET_ACCESS_KEY,
+    SessionToken: envValues.AWS_SESSION_TOKEN,
+    Expiration: envValues.AWS_CREDENTIAL_EXPIRATION,
+  };
+}
+
+export function applyAwsCredentialsToEnv(credentials: AwsProcessCredentials): boolean {
+  if (!credentials.AccessKeyId || !credentials.SecretAccessKey) return false;
+
+  process.env.AWS_ACCESS_KEY_ID = credentials.AccessKeyId;
+  process.env.AWS_SECRET_ACCESS_KEY = credentials.SecretAccessKey;
+  if (credentials.SessionToken) {
+    process.env.AWS_SESSION_TOKEN = credentials.SessionToken;
+  } else {
+    delete process.env.AWS_SESSION_TOKEN;
+  }
+  if (credentials.Expiration) {
+    process.env.AWS_CREDENTIAL_EXPIRATION = credentials.Expiration;
+  } else {
+    delete process.env.AWS_CREDENTIAL_EXPIRATION;
+  }
+  return true;
+}
+
+function clearExportedAwsCredentials() {
+  for (const key of AWS_EXPORTED_CREDENTIAL_KEYS) {
+    delete process.env[key];
+  }
 }
 
 export default function bedrockAuthExtension(pi: ExtensionAPI) {
@@ -259,6 +342,7 @@ export default function bedrockAuthExtension(pi: ExtensionAPI) {
     try {
       result = await api.exec(command, args, { timeout: CACHED_REFRESH_TIMEOUT_MS });
     } catch (error) {
+      clearExportedAwsCredentials();
       lastCachedRefreshSucceeded = false;
       nextCachedRefreshCheckAt = Date.now() + CACHED_REFRESH_FAILURE_BACKOFF_MS;
       if (options.notify && options.ctx) {
@@ -274,17 +358,32 @@ export default function bedrockAuthExtension(pi: ExtensionAPI) {
     }
 
     if (result.code === 0) {
-      lastCachedRefreshSucceeded = true;
-      nextCachedRefreshCheckAt = Date.now() + CACHED_REFRESH_SUCCESS_TTL_MS;
+      const credentials = parseAwsProcessCredentials(result.stdout);
+      if (credentials && applyAwsCredentialsToEnv(credentials)) {
+        lastCachedRefreshSucceeded = true;
+        nextCachedRefreshCheckAt = Date.now() + CACHED_REFRESH_SUCCESS_TTL_MS;
+        if (options.notify && options.ctx) {
+          options.ctx.ui.notify(
+            `AWS Bedrock session renewed from the cached \`${bedrockProfile()}\` refresh token and loaded into this running app.`,
+            "info"
+          );
+        }
+        return true;
+      }
+
+      lastCachedRefreshSucceeded = false;
+      nextCachedRefreshCheckAt = Date.now() + CACHED_REFRESH_FAILURE_BACKOFF_MS;
+      clearExportedAwsCredentials();
       if (options.notify && options.ctx) {
         options.ctx.ui.notify(
-          `AWS Bedrock session renewed from the cached \`${bedrockProfile()}\` refresh token.`,
-          "info"
+          `Cached AWS login refresh via \`${display}\` succeeded but did not return AWS credentials. Browser login is needed.`,
+          "warning"
         );
       }
-      return true;
+      return false;
     }
 
+    clearExportedAwsCredentials();
     lastCachedRefreshSucceeded = false;
     nextCachedRefreshCheckAt = Date.now() + CACHED_REFRESH_FAILURE_BACKOFF_MS;
     if (options.notify && options.ctx) {
@@ -315,10 +414,17 @@ export default function bedrockAuthExtension(pi: ExtensionAPI) {
         return;
       }
 
-      lastCachedRefreshSucceeded = true;
-      nextCachedRefreshCheckAt = Date.now() + CACHED_REFRESH_SUCCESS_TTL_MS;
+      const refreshed = await refreshFromCachedToken(api, { force: true, notify: true, ctx });
+      if (!refreshed) {
+        ctx.ui.notify(
+          `AWS login completed for profile \`${bedrockProfile()}\`, but credentials could not be loaded into this running app.`,
+          "error"
+        );
+        return;
+      }
+
       ctx.ui.notify(
-        `AWS credentials refreshed for profile \`${bedrockProfile()}\`. Bedrock will re-read them on the next request.`,
+        `AWS credentials refreshed for profile \`${bedrockProfile()}\` and loaded into this running app.`,
         "info"
       );
       await offerRetryIfNeeded(api, ctx, offerRetry);

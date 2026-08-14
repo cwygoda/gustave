@@ -267,7 +267,8 @@ offers to run browser login and can retry your last message.
   `GUSTAVE_BEDROCK_PROFILE` overrides it; ambient `AWS_PROFILE` is ignored for
   Bedrock auth unless `GUSTAVE_BEDROCK_SET_AWS_PROFILE=0`)
 - Cached refresh command:
-  `aws sts get-caller-identity --profile=dev --output json --no-cli-pager`
+  `env -u AWS_ACCESS_KEY_ID -u AWS_SECRET_ACCESS_KEY -u AWS_SESSION_TOKEN -u AWS_CREDENTIAL_EXPIRATION aws configure export-credentials --profile=dev --format process`
+  (loads fresh short-lived AWS credentials into the running Gustave process)
 - Browser login command: `aws login --profile=dev`
 - Override browser login with `GUSTAVE_BEDROCK_LOGIN_CMD`
 - Override cached refresh with `GUSTAVE_BEDROCK_REFRESH_CMD`
