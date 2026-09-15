@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -16,11 +17,48 @@ function run(label, command, args, opts = {}) {
   process.stdout.write(`✓ ${label}\n`);
 }
 
+function packageJsonPath(packageName) {
+  return resolve(root, "node_modules", ...packageName.split("/"), "package.json");
+}
+
+function installedPackageVersion(packageName) {
+  return JSON.parse(readFileSync(packageJsonPath(packageName), "utf8")).version;
+}
+
+function npmLatestVersion(packageName) {
+  for (const command of ["pnpm", "npm"]) {
+    const result = spawnSync(command, ["view", packageName, "version"], {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    if (result.status === 0 && result.stdout.trim()) return result.stdout.trim();
+  }
+  throw new Error(`Could not fetch latest version for ${packageName}`);
+}
+
+function checkLatestPackage(label, packageName) {
+  process.stdout.write(`\n▶ ${label}\n`);
+  const current = installedPackageVersion(packageName);
+  const latest = npmLatestVersion(packageName);
+  if (current !== latest) {
+    console.error(`✗ ${label} failed: installed ${packageName}@${current}, latest is ${latest}`);
+    process.exit(1);
+  }
+  process.stdout.write(`✓ ${label} (${packageName}@${current})\n`);
+}
+
 run("Installer shell syntax", "sh", ["-n", "install.sh"]);
 run("TypeScript extensions", process.execPath, ["node_modules/typescript/bin/tsc", "-p", "tsconfig.json"]);
 run("Powerline footer dependency", process.execPath, [
   "-e",
   "require('fs').accessSync('node_modules/pi-powerline-footer/index.ts')",
+]);
+run("Powerline footer typecheck", process.execPath, [
+  "node_modules/typescript/bin/tsc",
+  "--noEmit",
+  "-p",
+  "node_modules/pi-powerline-footer/tsconfig.json",
 ]);
 run("Commit hook accepts Conventional Commit", process.execPath, [
   "-e",
@@ -38,6 +76,7 @@ run("Paseo CLI help", process.execPath, ["node_modules/@getpaseo/cli/bin/paseo",
 run("agent-browser version", process.execPath, ["node_modules/agent-browser/bin/agent-browser.js", "--version"]);
 
 if (online) {
+  checkLatestPackage("Bundled pi is latest", "@earendil-works/pi-coding-agent");
   run("Svelte MCP over MCPorter", process.execPath, [
     "node_modules/mcporter/dist/cli.js",
     "list",

@@ -156,7 +156,7 @@ gustave self-update
 4. local self-tests,
 5. reinstalls the absolute user-bin launcher.
 
-Include the live Svelte MCP smoke test:
+Include the live Svelte MCP smoke test and verify the bundled pi package is on npm's latest tag:
 
 ```bash
 gustave self-update --online
