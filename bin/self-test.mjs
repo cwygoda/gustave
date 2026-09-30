@@ -18,6 +18,18 @@ function run(label, command, args, opts = {}) {
   process.stdout.write(`✓ ${label}\n`);
 }
 
+// Like run(), but a non-zero exit only warns. Use for third-party checks that can
+// break on new pi releases without affecting Gustave's runtime.
+function runNonFatal(label, command, args, note, opts = {}) {
+  process.stdout.write(`\n▶ ${label}\n`);
+  const result = spawnSync(command, args, { cwd: root, stdio: "inherit", env: { ...process.env, ...opts.env } });
+  if (result.status !== 0) {
+    console.warn(`⚠ ${label} failed with exit ${result.status} (non-fatal)${note ? `: ${note}` : ""}`);
+    return;
+  }
+  process.stdout.write(`✓ ${label}\n`);
+}
+
 function packageJsonPath(packageName) {
   return resolve(root, "node_modules", ...packageName.split("/"), "package.json");
 }
@@ -73,12 +85,12 @@ run("Powerline footer dependency", process.execPath, [
   "-e",
   "require('fs').accessSync('node_modules/pi-powerline-footer/index.ts')",
 ]);
-run("Powerline footer typecheck", process.execPath, [
-  "node_modules/typescript/bin/tsc",
-  "--noEmit",
-  "-p",
-  "node_modules/pi-powerline-footer/tsconfig.json",
-]);
+runNonFatal(
+  "Powerline footer typecheck",
+  process.execPath,
+  ["node_modules/typescript/bin/tsc", "--noEmit", "-p", "node_modules/pi-powerline-footer/tsconfig.json"],
+  "pi-powerline-footer has no release targeting pi 0.9x yet; the footer still runs at runtime"
+);
 run("Commit hook accepts Conventional Commit", process.execPath, [
   "-e",
   "const fs=require('fs'),os=require('os'),path=require('path'),cp=require('child_process'); const f=path.join(os.tmpdir(),'gustave-good-commit-msg'); fs.writeFileSync(f,'fix(cli): validate commit hook\\n'); process.exit(cp.spawnSync(process.execPath,['bin/commit-msg-hook.mjs',f],{cwd:process.cwd(),stdio:'inherit'}).status ?? 1);",
