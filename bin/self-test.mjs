@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -48,6 +49,24 @@ function checkLatestPackage(label, packageName) {
   process.stdout.write(`✓ ${label} (${packageName}@${current})\n`);
 }
 
+const piCli = resolve(root, "node_modules", "@earendil-works", "pi-coding-agent", "dist", "cli.js");
+
+// Smoke-test an MCP server through pi's native `pi mcp list` using a throwaway agent
+// dir, so the bundled servers connect exactly as they do in a Gustave session.
+function checkMcpServer(label, name, config, extraEnv = {}) {
+  const dir = mkdtempSync(join(tmpdir(), "gustave-mcp-"));
+  const agentDir = join(dir, "agent");
+  mkdirSync(agentDir, { recursive: true });
+  writeFileSync(join(agentDir, "mcp.json"), `${JSON.stringify({ mcpServers: { [name]: config } }, null, 2)}\n`);
+  try {
+    run(label, process.execPath, [piCli, "mcp", "list"], {
+      env: { PI_CODING_AGENT_DIR: agentDir, ...extraEnv },
+    });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 run("Installer shell syntax", "sh", ["-n", "install.sh"]);
 run("TypeScript extensions", process.execPath, ["node_modules/typescript/bin/tsc", "-p", "tsconfig.json"]);
 run("Powerline footer dependency", process.execPath, [
@@ -70,24 +89,17 @@ run("Commit hook rejects agent attribution", process.execPath, [
 ]);
 run("Gustave help", process.execPath, ["bin/gustave.mjs", "--help"]);
 run("Pi help passthrough", process.execPath, ["bin/gustave.mjs", "pi-help"]);
-run("MCPorter help", process.execPath, ["node_modules/mcporter/dist/cli.js", "--help"]);
-run("Bundled local Svelte MCP", process.execPath, ["bin/gustave.mjs", "mcporter", "list", "svelte-local", "--brief"]);
+run("Pi MCP command passthrough", process.execPath, ["bin/gustave.mjs", "mcp", "list"]);
+checkMcpServer("Bundled Svelte MCP (stdio)", "svelte", {
+  command: process.execPath,
+  args: [resolve(root, "node_modules", "@sveltejs", "mcp", "dist", "index.mjs")],
+});
 run("Paseo CLI help", process.execPath, ["node_modules/@getpaseo/cli/bin/paseo", "--help"]);
 run("agent-browser version", process.execPath, ["node_modules/agent-browser/bin/agent-browser.js", "--version"]);
 
 if (online) {
   checkLatestPackage("Bundled pi is latest", "@earendil-works/pi-coding-agent");
-  run("Svelte MCP over MCPorter", process.execPath, [
-    "node_modules/mcporter/dist/cli.js",
-    "list",
-    "--http-url",
-    "https://mcp.svelte.dev/mcp",
-    "--name",
-    "svelte",
-    "--brief",
-    "--timeout",
-    "15000",
-  ]);
+  checkMcpServer("Svelte MCP over HTTP", "svelte", { url: "https://mcp.svelte.dev/mcp" });
 } else {
   console.log("\nSkipping online Svelte MCP smoke. Run `gustave self-test --online` to include it.");
 }

@@ -211,8 +211,7 @@ gustave self-update [--online] [--upgrade]  # Gustave update + tests (--upgrade 
 gustave self-test [--online]
 gustave install-bin [--dir ~/.local/bin]
 gustave github-ssh [--owner cwygoda]
-gustave mcporter [...args]
-gustave svelte-mcp [list|tool ...args]
+gustave mcp [add|remove|list|login|logout ...]  # manage ~/.pi/agent/mcp.json
 gustave paseo [...args]
 gustave agent-browser [...args]
 gustave pi-help
@@ -224,8 +223,7 @@ Examples:
 gustave -p "Summarize this repository"
 gustave --model sonnet:high "Refactor the auth module"
 gustave update --all
-gustave mcporter list svelte --brief
-gustave svelte-mcp list-sections
+gustave mcp list
 gustave agent-browser snapshot
 gustave paseo ls
 ```
@@ -295,9 +293,9 @@ shell.
 | Subagents | `subagents_list`, `subagent` | isolated specialized pi subprocesses |
 | Credential firewall | `/credential-firewall` | keeps `gh`/`aws` usable while blocking known credential extraction and redacting accidental token leaks from tool output |
 | Bedrock auth | `/bedrock-login`, `GUSTAVE_BEDROCK_*` | renews Amazon Bedrock AWS CLI login sessions from cached refresh tokens, falls back to `aws login --profile=dev`, then offers to retry |
-| MCP | `mcp_list`, `mcp_call`, `svelte_mcp`, `gustave mcporter` | MCP access through MCPorter |
-| Svelte | `gustave svelte-mcp ...`, `svelte_mcp` | official Svelte MCP via `https://mcp.svelte.dev/mcp` |
-| Browser | `gustave agent-browser ...`, MCP server `agent-browser` | token-efficient browser automation |
+| MCP | pi built-in MCP, `/mcp`, `gustave mcp ...` | native MCP over stdio/HTTP; tools exposed as `mcp__<server>__<tool>` |
+| Svelte | bundled `svelte` MCP server (`direct`) | official Svelte MCP, bundled stdio with HTTP fallback; tools as `mcp__svelte__*` |
+| Browser | `gustave agent-browser ...`, bundled `agent-browser` MCP server (`deferred`) | token-efficient browser automation |
 | Paseo | `gustave paseo ...` | external multi-agent orchestration |
 
 ## Credential firewall
@@ -322,25 +320,32 @@ Check status inside Gustave:
 /credential-firewall
 ```
 
-## MCPorter and Svelte MCP
+## MCP servers
 
-Gustave writes `~/.gustave/mcporter.json` with:
+Gustave uses pi's built-in MCP support (see pi's `docs/mcp.md`). Two servers are
+registered for every session by an extension, so they are not written to `mcp.json`:
 
-- `svelte` — official Svelte MCP over HTTP
-- `svelte-local` — bundled `@sveltejs/mcp` stdio server
-- `agent-browser` — local `agent-browser mcp` stdio server
-- imports from Cursor, Claude, Codex, Windsurf, OpenCode, and VS Code MCP configs
+- `svelte` — official Svelte MCP. Prefers the bundled `@sveltejs/mcp` stdio server
+  (offline, deterministic) and falls back to `https://mcp.svelte.dev/mcp`. Exposure
+  `direct`, so its tools are declared to the model.
+- `agent-browser` — local `agent-browser mcp` stdio server (29 tools). Exposure
+  `deferred`: tools load on demand via the `tool_search` tool.
 
-Examples:
+Manage servers from `/mcp` inside a session. From a shell, `gustave mcp ...` wraps
+`pi mcp ...` and edits your own `~/.pi/agent/mcp.json` (Gustave's bundled servers are
+session-only and show up in `/mcp`, not in `gustave mcp list`):
 
 ```bash
-gustave mcporter list
-gustave mcporter list svelte --brief
-gustave svelte-mcp list-sections
-gustave svelte-mcp get-documentation section=docs/svelte/overview
+gustave mcp list
+gustave mcp add filesystem -- npx -y @modelcontextprotocol/server-filesystem .
+gustave mcp add docs --url https://example.com/mcp
+gustave mcp remove docs
 ```
 
-Inside Gustave, the agent can use `mcp_list`, `mcp_call`, and `svelte_mcp`.
+Servers written for other agents (Cursor, Claude, Codex, VS Code, opencode) can be
+copied/converted into `~/.pi/agent/mcp.json`. Inside a session, the model reaches
+Svelte tools as `mcp__svelte__*` and browser tools as `mcp__agent-browser__*` (after
+`tool_search`).
 
 ## agent-browser
 
@@ -360,11 +365,9 @@ gustave agent-browser screenshot page.png
 gustave agent-browser close
 ```
 
-Or use it through MCP:
-
-```bash
-gustave mcporter list agent-browser --brief
-```
+Or use it through MCP: the bundled `agent-browser` server exposes its tools as
+`mcp__agent-browser__*` (exposure `deferred`, loaded via `tool_search`). Manage it
+from `/mcp`.
 
 ## Paseo
 

@@ -31,7 +31,7 @@ if (!conventional.test(subject)) {
   console.error("\nAllowed types:");
   console.error("  build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test");
   console.error("\nExamples:");
-  console.error("  feat(cli): add MCPorter passthrough");
+  console.error("  feat(cli): add MCP command passthrough");
   console.error("  fix(git): enforce commit message policy");
   console.error(`\nActual subject:\n  ${subject || "<empty>"}\n`);
   process.exit(1);

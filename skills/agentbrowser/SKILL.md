@@ -19,10 +19,14 @@ gustave agent-browser screenshot page.png
 gustave agent-browser close
 ```
 
-2. MCP through MCPorter:
+2. Native MCP tools through pi (server `agent-browser`, 29 tools, exposure `deferred`):
 
-- Use `mcp_list({ "server": "agent-browser" })`.
-- Then call tools with `mcp_call`, e.g. `agent-browser.agent_browser_snapshot`.
+- The tools are not declared up front. Use the `tool_search` tool to load the
+  action you need, then call the returned `mcp__agent-browser__*` tool
+  (e.g. `mcp__agent-browser__snapshot`, `mcp__agent-browser__click`).
+- Manage the server from `/mcp`.
+- Prefer the CLI above for interactive, multi-step automation; it is simpler and
+  keeps the session lean.
 
 Guidelines:
 

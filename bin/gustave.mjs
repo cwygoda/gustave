@@ -108,7 +108,9 @@ function ensureDefaultPiSettings(agentDir, packageRoot, config) {
     hideWhenMissing: false,
   };
   const configuredPowerline =
-    config.powerline && typeof config.powerline === "object" && !Array.isArray(config.powerline) ? config.powerline : {};
+    config.powerline && typeof config.powerline === "object" && !Array.isArray(config.powerline)
+      ? config.powerline
+      : {};
   const defaultPowerline = deepMerge(
     {
       preset: "default",
@@ -158,50 +160,6 @@ function piCliPath() {
   return packageBin("@earendil-works/pi-coding-agent", "dist/cli.js");
 }
 
-function ensureMcporterConfig(home) {
-  mkdirSync(home, { recursive: true });
-  const configFile = join(home, "mcporter.json");
-  const agentBrowserBin = join(root, "node_modules", "agent-browser", "bin", "agent-browser.js");
-  const svelteLocalBin = join(root, "node_modules", "@sveltejs", "mcp", "dist", "index.mjs");
-  const mcpServers = {
-    svelte: {
-      description: "Official Svelte MCP over Streamable HTTP",
-      baseUrl: "https://mcp.svelte.dev/mcp",
-    },
-  };
-  if (existsSync(svelteLocalBin)) {
-    mcpServers["svelte-local"] = {
-      description: "Official Svelte MCP via bundled stdio package",
-      command: process.execPath,
-      args: [svelteLocalBin],
-    };
-  }
-  if (existsSync(agentBrowserBin)) {
-    mcpServers["agent-browser"] = {
-      description: "agent-browser MCP stdio server",
-      command: process.execPath,
-      args: [agentBrowserBin, "mcp"],
-    };
-  }
-  const next = {
-    imports: ["cursor", "claude-code", "claude-desktop", "codex", "windsurf", "opencode", "vscode"],
-    mcpServers,
-  };
-
-  let existing = {};
-  if (existsSync(configFile)) {
-    try {
-      existing = readJson(configFile);
-    } catch {
-      existing = {};
-    }
-  }
-  const merged = deepMerge(next, existing);
-  merged.mcpServers = { ...next.mcpServers, ...(existing.mcpServers ?? {}) };
-  writeFileSync(configFile, `${JSON.stringify(merged, null, 2)}\n`);
-  return configFile;
-}
-
 function withGitCommitPolicyEnv(env) {
   if (env.GUSTAVE_DISABLE_GIT_COMMIT_POLICY === "1") return env;
   const next = { ...env, GUSTAVE_NODE: process.execPath };
@@ -224,7 +182,7 @@ function spawnNodeScript(script, args, env) {
 
 function printGustaveHelp() {
   console.log(
-    `gustave - a custom coding agent based on pi\n\nUsage:\n  gustave [pi options] [@files...] [messages...]\n  gustave update [pi update options]\n  gustave install-bin [--dir ~/.local/bin]\n  gustave self-test [--online]\n  gustave self-update [--online] [--upgrade]\n  gustave github-ssh [--owner cwygoda]\n  gustave mcporter [...args]\n  gustave svelte-mcp [list|tool ...args]\n  gustave paseo [...args]\n  gustave agent-browser [...args]\n  gustave config-path\n  gustave pi-help\n\nConfig files, merged in order:\n  ~/.config/gustave/config.json\n  ~/.gustave/config.json\n  ./.gustave/config.json\n\nSet GUSTAVE_CONFIG=/path/to/config.json to load an explicit file first.\n\nExample config:\n{\n  "env": { "AWS_PROFILE": "dev" },\n  "envFiles": ["~/.gustave/env"],\n  "piArgs": ["--provider", "amazon-bedrock"],\n  "theme": "gustave"\n}\n\nAll other arguments are passed through to pi. Use \`gustave pi-help\` for pi's full help.`
+    `gustave - a custom coding agent based on pi\n\nUsage:\n  gustave [pi options] [@files...] [messages...]\n  gustave update [pi update options]\n  gustave install-bin [--dir ~/.local/bin]\n  gustave self-test [--online]\n  gustave self-update [--online] [--upgrade]\n  gustave github-ssh [--owner cwygoda]\n  gustave mcp [add|remove|list|login|logout ...]\n  gustave paseo [...args]\n  gustave agent-browser [...args]\n  gustave config-path\n  gustave pi-help\n\nConfig files, merged in order:\n  ~/.config/gustave/config.json\n  ~/.gustave/config.json\n  ./.gustave/config.json\n\nSet GUSTAVE_CONFIG=/path/to/config.json to load an explicit file first.\n\nExample config:\n{\n  "env": { "AWS_PROFILE": "dev" },\n  "envFiles": ["~/.gustave/env"],\n  "piArgs": ["--provider", "amazon-bedrock"],\n  "theme": "gustave"\n}\n\nAll other arguments are passed through to pi. Use \`gustave pi-help\` for pi's full help.`
   );
 }
 
@@ -242,13 +200,11 @@ const envFromFiles = Object.assign(
   {},
   ...(config.envFiles ?? []).map((p) => readEnvFile(resolve(process.cwd(), expandHome(p))))
 );
-const mcporterConfig = ensureMcporterConfig(gustaveHome);
 const childEnv = withGitCommitPolicyEnv({
   ...process.env,
   GUSTAVE_HOME: gustaveHome,
   GUSTAVE_PACKAGE_ROOT: root,
   GUSTAVE_CONFIG_FILES: loaded.join(":"),
-  GUSTAVE_MCPORTER_CONFIG: mcporterConfig,
   PI_CODING_AGENT_DIR: agentDir,
   ...envFromFiles,
   ...(config.env ?? {}),
@@ -276,30 +232,9 @@ function spawnTool(bin, args) {
   process.exit(result.status ?? (result.error ? 1 : 0));
 }
 
-function withMcporterDefaults(args) {
-  const hasConfig = args.includes("--config");
-  const hasRoot = args.includes("--root");
-  return [...(hasConfig ? [] : ["--config", mcporterConfig]), ...(hasRoot ? [] : ["--root", process.cwd()]), ...args];
-}
-
-if (argv[0] === "mcporter") spawnTool(packageBin("mcporter", "dist/cli.js"), withMcporterDefaults(argv.slice(1)));
 if (argv[0] === "paseo") spawnTool(packageBin("@getpaseo/cli", "bin/paseo"), argv.slice(1));
 if (argv[0] === "agent-browser" || argv[0] === "agentbrowser")
   spawnTool(packageBin("agent-browser", "bin/agent-browser.js"), argv.slice(1));
-if (argv[0] === "svelte-mcp") {
-  const rest = argv.slice(1);
-  const mcporterBin = packageBin("mcporter", "dist/cli.js");
-  if (rest.length === 0 || rest[0] === "list") {
-    spawnTool(
-      mcporterBin,
-      withMcporterDefaults(["list", "svelte", "--brief", ...rest.slice(rest[0] === "list" ? 1 : 0)])
-    );
-  } else {
-    const tool = rest[0] === "call" ? rest[1] : rest[0];
-    const toolArgs = rest[0] === "call" ? rest.slice(2) : rest.slice(1);
-    spawnTool(mcporterBin, withMcporterDefaults(["call", `svelte.${tool}`, ...toolArgs]));
-  }
-}
 
 if (argv[0] === "pi-help") {
   argv.splice(0, 1, "--help");
@@ -314,7 +249,7 @@ const bundledExtensions = [
     "bedrock-auth.ts",
     "game-sounds.ts",
     "gustave-ui.ts",
-    "mcporter.ts",
+    "mcp-servers.ts",
     "memory.ts",
     "research.ts",
     "subagents.ts",
@@ -331,7 +266,8 @@ const resourceArgs = [
   gustaveSystemPolicy,
 ];
 
-const packageCommands = new Set(["install", "remove", "uninstall", "update", "list", "config"]);
+// pi subcommands that run straight through, without Gustave's resource injection.
+const packageCommands = new Set(["install", "remove", "uninstall", "update", "list", "config", "mcp"]);
 const commandMode = packageCommands.has(argv[0]);
 const args = commandMode ? [piCliPath(), ...argv] : [piCliPath(), ...resourceArgs, ...piArgs, ...argv];
 
