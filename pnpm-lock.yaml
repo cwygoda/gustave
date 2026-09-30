@@ -27,8 +27,8 @@ importers:
         specifier: ^0.8.0
         version: 0.8.0(@aws-sdk/credential-provider-node@3.972.83)(@smithy/signature-v4@5.7.3)(react@19.1.9)
       '@plannotator/pi-extension':
-        specifier: ^0.27.16
-        version: 0.27.16(@earendil-works/pi-coding-agent@0.99.1(@aws-sdk/credential-provider-node@3.972.83)(@modelcontextprotocol/sdk@1.29.0(zod@4.6.5))(@smithy/signature-v4@5.7.3)(ws@8.21.3)(zod@4.6.5))(@shikijs/themes@4.4.3)(react-dom@19.3.0(react@19.1.9))(react@19.1.9)
+        specifier: ^0.27.22
+        version: 0.27.22(@earendil-works/pi-coding-agent@0.99.1(@aws-sdk/credential-provider-node@3.972.83)(@modelcontextprotocol/sdk@1.29.0(zod@4.6.5))(@smithy/signature-v4@5.7.3)(ws@8.21.3)(zod@4.6.5))(@shikijs/themes@4.4.3)(react-dom@19.3.0(react@19.1.9))(react@19.1.9)
       '@sveltejs/mcp':
         specifier: ^0.1.26
         version: 0.1.26(jiti@2.7.0)(typescript@7.0.2)
@@ -912,8 +912,8 @@ packages:
   '@pinojs/redact@0.4.0':
     resolution: {integrity: sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg==}
 
-  '@plannotator/pi-extension@0.27.16':
-    resolution: {integrity: sha512-LfS/EkMD4b+Dzu2kKp/2YORqH27dVbRXhaLYbzqQaK1AtMPexPvBPebZQs4xXBUveanTkYkBKTfp7uT8VeQ5jQ==}
+  '@plannotator/pi-extension@0.27.22':
+    resolution: {integrity: sha512-9ctdYu5WuolWtvoIgwpvKGEiVyLRVhHi9CSMKRsPMi6M5vnCW/GaejCuTq5X/peysSZBufsWwSVySFQ+ycEdZQ==}
     peerDependencies:
       '@earendil-works/pi-coding-agent': '>=0.79.1'
 
@@ -4105,7 +4105,7 @@ snapshots:
 
   '@pinojs/redact@0.4.0': {}
 
-  '@plannotator/pi-extension@0.27.16(@earendil-works/pi-coding-agent@0.99.1(@aws-sdk/credential-provider-node@3.972.83)(@modelcontextprotocol/sdk@1.29.0(zod@4.6.5))(@smithy/signature-v4@5.7.3)(ws@8.21.3)(zod@4.6.5))(@shikijs/themes@4.4.3)(react-dom@19.3.0(react@19.1.9))(react@19.1.9)':
+  '@plannotator/pi-extension@0.27.22(@earendil-works/pi-coding-agent@0.99.1(@aws-sdk/credential-provider-node@3.972.83)(@modelcontextprotocol/sdk@1.29.0(zod@4.6.5))(@smithy/signature-v4@5.7.3)(ws@8.21.3)(zod@4.6.5))(@shikijs/themes@4.4.3)(react-dom@19.3.0(react@19.1.9))(react@19.1.9)':
     dependencies:
       '@earendil-works/pi-coding-agent': 0.99.1(@aws-sdk/credential-provider-node@3.972.83)(@modelcontextprotocol/sdk@1.29.0(zod@4.6.5))(@smithy/signature-v4@5.7.3)(ws@8.21.3)(zod@4.6.5)
       '@joplin/turndown-plugin-gfm': 1.0.68
