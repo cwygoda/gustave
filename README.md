@@ -207,6 +207,8 @@ That persisted `GIT_SSH_COMMAND` is injected into Gustave/pi/subagents, so Git o
 ```bash
 gustave [pi options] [@files...] [messages...]
 gustave update [pi update options]      # pi update passthrough
+gustave auth [...args]                  # pi auth passthrough
+gustave mcp [...args]                   # pi mcp passthrough
 gustave self-update [--online] [--upgrade]  # Gustave update + tests (--upgrade bumps pi to latest)
 gustave self-test [--online]
 gustave install-bin [--dir ~/.local/bin]
@@ -247,12 +249,12 @@ Example for Bedrock:
     "AWS_REGION": "us-east-1"
   },
   "envFiles": ["~/.gustave/env"],
-  "piArgs": ["--provider", "amazon-bedrock"],
+  "piArgs": ["--model", "amazon-bedrock/<model-id>"],
   "theme": "gustave"
 }
 ```
 
-`envFiles` support simple `KEY=value` lines.
+`envFiles` support simple `KEY=value` lines. With Pi 1.x, `--provider` requires an accompanying `--model`; use `--model provider/model-id` in `piArgs` when pinning a provider.
 
 ### Bedrock credential refresh
 
@@ -291,6 +293,7 @@ shell.
 | Memory | `memory_save`, `memory_search`, `memory_delete` | durable memory in `~/.gustave/memory` |
 | Plans | `plan_annotate`, `plan_read` | markdown plan tracking |
 | Subagents | `subagents_list`, `subagent` | isolated specialized pi subprocesses |
+| Codemode | `codemode` | Pi 1.x JavaScript tool orchestration enabled by default |
 | Credential firewall | `/credential-firewall` | keeps `gh`/`aws` usable while blocking known credential extraction and redacting accidental token leaks from tool output |
 | Bedrock auth | `/bedrock-login`, `GUSTAVE_BEDROCK_*` | renews Amazon Bedrock AWS CLI login sessions from cached refresh tokens, falls back to `aws login --profile=dev`, then offers to retry |
 | MCP | pi built-in MCP, `/mcp`, `gustave mcp ...` | native MCP over stdio/HTTP; tools exposed as `mcp__<server>__<tool>` |
@@ -322,14 +325,11 @@ Check status inside Gustave:
 
 ## MCP servers
 
-Gustave uses pi's built-in MCP support (see pi's `docs/mcp.md`). Two servers are
-registered for every session by an extension, so they are not written to `mcp.json`:
+Gustave uses pi's built-in MCP support (see pi's `docs/mcp.md`). Bundled servers are written to Gustave's normal `mcp.json`, so `/mcp`, OAuth, exposure controls, and lazy reconnection work consistently:
 
-- `svelte` — official Svelte MCP. Prefers the bundled `@sveltejs/mcp` stdio server
-  (offline, deterministic) and falls back to `https://mcp.svelte.dev/mcp`. Exposure
-  `direct`, so its tools are declared to the model.
-- `agent-browser` — local `agent-browser mcp` stdio server (29 tools). Exposure
-  `deferred`: tools load on demand via the `tool_search` tool.
+- `svelte` — official Svelte MCP over HTTP.
+- `svelte-local` — bundled `@sveltejs/mcp` stdio server.
+- `agent-browser` — local `agent-browser mcp` stdio server.
 
 Manage servers from `/mcp` inside a session. From a shell, `gustave mcp ...` wraps
 `pi mcp ...` and edits your own `~/.pi/agent/mcp.json` (Gustave's bundled servers are
@@ -343,9 +343,8 @@ gustave mcp remove docs
 ```
 
 Servers written for other agents (Cursor, Claude, Codex, VS Code, opencode) can be
-copied/converted into `~/.pi/agent/mcp.json`. Inside a session, the model reaches
-Svelte tools as `mcp__svelte__*` and browser tools as `mcp__agent-browser__*` (after
-`tool_search`).
+copied/converted into Gustave's `mcp.json`. Inside a session, the model reaches
+MCP tools through their configured exposure mode.
 
 ## agent-browser
 
@@ -390,4 +389,4 @@ This repository is also a pi package. Pi discovers resources from:
 - `prompts/`
 - `themes/`
 
-The wrapper writes initial Gustave settings into `~/.gustave/agent/settings.json` and keeps paths absolute. Gustave also bundles `pi-powerline-footer` as a dependency and loads it from `node_modules/pi-powerline-footer/index.ts`; the local `gustave-ui` extension only publishes a small `gustave` status item for that powerline.
+The wrapper writes initial Gustave settings into `~/.gustave/agent/settings.json`, Pi MCP config into `~/.gustave/agent/mcp.json`, and keeps paths absolute. Gustave enables Pi 1.x `codemode` by default. Gustave also bundles `pi-powerline-footer` as a dependency and loads it from `node_modules/pi-powerline-footer/index.ts`; the local `gustave-ui` extension only publishes a small `gustave` status item for that powerline.

@@ -82,7 +82,27 @@ function loadConfig() {
   return { config, loaded };
 }
 
-function ensureDefaultPiSettings(agentDir, packageRoot, config) {
+function isGustaveManagedResourcePath(value) {
+  if (typeof value !== "string") return false;
+  const normalized = expandHome(value).replaceAll("\\", "/");
+  return (
+    /\/gustave\/extensions(?:\/|$)/.test(normalized) ||
+    /\/gustave\/skills(?:\/|$)/.test(normalized) ||
+    /\/gustave\/prompts(?:\/|$)/.test(normalized) ||
+    /\/gustave\/themes(?:\/|$)/.test(normalized) ||
+    /\/gustave\/node_modules\/pi-powerline-footer\/index\.(?:ts|js)$/.test(normalized)
+  );
+}
+
+function removeGustaveManagedResourceSettings(settings) {
+  for (const key of ["extensions", "skills", "prompts", "themes"]) {
+    if (Array.isArray(settings[key])) {
+      settings[key] = settings[key].filter((item) => !isGustaveManagedResourcePath(item));
+    }
+  }
+}
+
+function ensureDefaultPiSettings(agentDir, _packageRoot, config) {
   mkdirSync(agentDir, { recursive: true });
   const settingsFile = join(agentDir, "settings.json");
   let settings = {};
@@ -94,10 +114,7 @@ function ensureDefaultPiSettings(agentDir, packageRoot, config) {
     }
   }
 
-  const appendUnique = (key, value) => {
-    const list = Array.isArray(settings[key]) ? settings[key] : [];
-    settings[key] = [...list.filter((item) => item !== value), value];
-  };
+  removeGustaveManagedResourceSettings(settings);
 
   const gustavePowerlineItem = {
     id: "gustave",
@@ -128,6 +145,7 @@ function ensureDefaultPiSettings(agentDir, packageRoot, config) {
   if (!settings.theme) settings.theme = config.theme ?? "gustave";
   if (!settings.defaultProjectTrust) settings.defaultProjectTrust = config.defaultProjectTrust ?? "ask";
   if (settings.enableSkillCommands === undefined) settings.enableSkillCommands = true;
+  if (settings.defaultTools === undefined) settings.defaultTools = config.defaultTools ?? ["+codemode"];
   if (settings.powerline === undefined) {
     settings.powerline = defaultPowerline;
   } else if (settings.powerline && typeof settings.powerline === "object" && !Array.isArray(settings.powerline)) {
@@ -137,12 +155,6 @@ function ensureDefaultPiSettings(agentDir, packageRoot, config) {
       settings.powerline.customItems = [...existingCustomItems, gustavePowerlineItem];
     }
   }
-  appendUnique("extensions", join(packageRoot, "extensions"));
-  appendUnique("extensions", join(packageRoot, "node_modules", "pi-powerline-footer", "index.ts"));
-  appendUnique("skills", join(packageRoot, "skills"));
-  appendUnique("prompts", join(packageRoot, "prompts"));
-  appendUnique("themes", join(packageRoot, "themes"));
-
   writeFileSync(settingsFile, `${JSON.stringify(settings, null, 2)}\n`);
 }
 
@@ -158,6 +170,54 @@ function packageBin(packageName, binPath) {
 
 function piCliPath() {
   return packageBin("@earendil-works/pi-coding-agent", "dist/cli.js");
+}
+
+function bundledMcpServers() {
+  const agentBrowserBin = join(root, "node_modules", "agent-browser", "bin", "agent-browser.js");
+  const svelteLocalBin = join(root, "node_modules", "@sveltejs", "mcp", "dist", "index.mjs");
+  const piServers = {
+    svelte: {
+      description: "Official Svelte documentation and autofix MCP over Streamable HTTP",
+      url: "https://mcp.svelte.dev/mcp",
+      exposure: "codemode",
+    },
+  };
+  if (existsSync(svelteLocalBin)) {
+    piServers["svelte-local"] = {
+      description: "Official Svelte documentation and autofix MCP via bundled stdio package",
+      command: process.execPath,
+      args: [svelteLocalBin],
+      exposure: "codemode",
+    };
+  }
+  if (existsSync(agentBrowserBin)) {
+    piServers["agent-browser"] = {
+      description: "Token-efficient browser automation with agent-browser",
+      command: process.execPath,
+      args: [agentBrowserBin, "mcp"],
+      exposure: "codemode",
+    };
+  }
+  return piServers;
+}
+
+function ensurePiMcpConfig(agentDir) {
+  mkdirSync(agentDir, { recursive: true });
+  const configFile = join(agentDir, "mcp.json");
+  const next = { mcpServers: bundledMcpServers() };
+
+  let existing = {};
+  if (existsSync(configFile)) {
+    try {
+      existing = readJson(configFile);
+    } catch {
+      existing = {};
+    }
+  }
+  const merged = deepMerge(next, existing);
+  merged.mcpServers = { ...next.mcpServers, ...(existing.mcpServers ?? {}) };
+  writeFileSync(configFile, `${JSON.stringify(merged, null, 2)}\n`);
+  return configFile;
 }
 
 function withGitCommitPolicyEnv(env) {
@@ -182,7 +242,7 @@ function spawnNodeScript(script, args, env) {
 
 function printGustaveHelp() {
   console.log(
-    `gustave - a custom coding agent based on pi\n\nUsage:\n  gustave [pi options] [@files...] [messages...]\n  gustave update [pi update options]\n  gustave install-bin [--dir ~/.local/bin]\n  gustave self-test [--online]\n  gustave self-update [--online] [--upgrade]\n  gustave github-ssh [--owner cwygoda]\n  gustave mcp [add|remove|list|login|logout ...]\n  gustave paseo [...args]\n  gustave agent-browser [...args]\n  gustave config-path\n  gustave pi-help\n\nConfig files, merged in order:\n  ~/.config/gustave/config.json\n  ~/.gustave/config.json\n  ./.gustave/config.json\n\nSet GUSTAVE_CONFIG=/path/to/config.json to load an explicit file first.\n\nExample config:\n{\n  "env": { "AWS_PROFILE": "dev" },\n  "envFiles": ["~/.gustave/env"],\n  "piArgs": ["--provider", "amazon-bedrock"],\n  "theme": "gustave"\n}\n\nAll other arguments are passed through to pi. Use \`gustave pi-help\` for pi's full help.`
+    `gustave - a custom coding agent based on pi\n\nUsage:\n  gustave [pi options] [@files...] [messages...]\n  gustave update [pi update options]\n  gustave auth [...args]\n  gustave mcp [add|remove|list|login|logout ...]\n  gustave install-bin [--dir ~/.local/bin]\n  gustave self-test [--online]\n  gustave self-update [--online] [--upgrade]\n  gustave github-ssh [--owner cwygoda]\n  gustave paseo [...args]\n  gustave agent-browser [...args]\n  gustave config-path\n  gustave pi-help\n\nConfig files, merged in order:\n  ~/.config/gustave/config.json\n  ~/.gustave/config.json\n  ./.gustave/config.json\n\nSet GUSTAVE_CONFIG=/path/to/config.json to load an explicit file first.\n\nExample config:\n{\n  "env": { "AWS_PROFILE": "dev" },\n  "envFiles": ["~/.gustave/env"],\n  "piArgs": ["--model", "amazon-bedrock/<model-id>"],\n  "theme": "gustave"\n}\n\nAll other arguments are passed through to pi. Pi 1.x requires --provider to be paired with --model, so prefer --model provider/model-id in piArgs. Use \`gustave pi-help\` for pi's full help.`
   );
 }
 
@@ -200,11 +260,13 @@ const envFromFiles = Object.assign(
   {},
   ...(config.envFiles ?? []).map((p) => readEnvFile(resolve(process.cwd(), expandHome(p))))
 );
+const piMcpConfig = ensurePiMcpConfig(agentDir);
 const childEnv = withGitCommitPolicyEnv({
   ...process.env,
   GUSTAVE_HOME: gustaveHome,
   GUSTAVE_PACKAGE_ROOT: root,
   GUSTAVE_CONFIG_FILES: loaded.join(":"),
+  GUSTAVE_PI_MCP_CONFIG: piMcpConfig,
   PI_CODING_AGENT_DIR: agentDir,
   ...envFromFiles,
   ...(config.env ?? {}),
@@ -267,7 +329,7 @@ const resourceArgs = [
 ];
 
 // pi subcommands that run straight through, without Gustave's resource injection.
-const packageCommands = new Set(["install", "remove", "uninstall", "update", "list", "config", "mcp"]);
+const packageCommands = new Set(["install", "remove", "uninstall", "update", "list", "config", "auth", "mcp"]);
 const commandMode = packageCommands.has(argv[0]);
 const args = commandMode ? [piCliPath(), ...argv] : [piCliPath(), ...resourceArgs, ...piArgs, ...argv];
 

@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const online = process.argv.includes("--online");
+const runtimeHome = mkdtempSync(join(tmpdir(), "gustave-self-test-"));
 
 function run(label, command, args, opts = {}) {
   process.stdout.write(`\n▶ ${label}\n`);
@@ -89,7 +90,13 @@ runNonFatal(
   "Powerline footer typecheck",
   process.execPath,
   ["node_modules/typescript/bin/tsc", "--noEmit", "-p", "node_modules/pi-powerline-footer/tsconfig.json"],
-  "pi-powerline-footer has no release targeting pi 0.9x yet; the footer still runs at runtime"
+  "third-party footer type errors do not affect Gustave's runtime"
+);
+run(
+  "Gustave resource startup",
+  process.execPath,
+  ["bin/gustave.mjs", "--no-session", "--list-models", "__gustave_self_test_no_model__"],
+  { env: { GUSTAVE_HOME: runtimeHome, PI_OFFLINE: "1" } }
 );
 run("Commit hook accepts Conventional Commit", process.execPath, [
   "-e",
