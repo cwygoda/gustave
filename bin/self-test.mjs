@@ -92,6 +92,10 @@ runNonFatal(
   ["node_modules/typescript/bin/tsc", "--noEmit", "-p", "node_modules/pi-powerline-footer/tsconfig.json"],
   "third-party footer type errors do not affect Gustave's runtime"
 );
+run("llama.cpp extension dependency", process.execPath, [
+  "-e",
+  "require('fs').accessSync('node_modules/pi-llama-cpp/src/index.ts')",
+]);
 run(
   "Gustave resource startup",
   process.execPath,

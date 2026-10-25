@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { homedir } from "node:os";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
@@ -306,6 +306,7 @@ const piArgs = Array.isArray(config.piArgs) ? config.piArgs : [];
 const bundledExtensions = [
   ["--extension", packageFile("pi-powerline-footer", "index.ts")],
   ["--extension", packageFile("@plannotator/pi-extension", "index.ts")],
+  ["--extension", packageFile("pi-llama-cpp", "src/index.ts")],
   ...[
     "ask-user.ts",
     "bedrock-auth.ts",

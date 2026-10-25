@@ -1,6 +1,6 @@
 # Gustave
 
-Gustave is a custom coding-agent distribution based on [pi](https://pi.dev). It wraps pi with a branded CLI, bundled skills/tools, MCP access, browser automation, subagents, memory, and the [`pi-powerline-footer`](https://pi.dev/packages/pi-powerline-footer) TUI.
+Gustave is a custom coding-agent distribution based on [pi](https://pi.dev). It wraps pi with a branded CLI, bundled skills/tools, llama.cpp support, MCP access, browser automation, subagents, memory, and the [`pi-powerline-footer`](https://pi.dev/packages/pi-powerline-footer) TUI.
 
 ## Copy/paste install
 
@@ -256,6 +256,35 @@ Example for Bedrock:
 
 `envFiles` support simple `KEY=value` lines. With Pi 1.x, `--provider` requires an accompanying `--model`; use `--model provider/model-id` in `piArgs` when pinning a provider.
 
+### llama.cpp
+
+Gustave bundles [`pi-llama-cpp`](https://github.com/gsanhueza/pi-llama-cpp). Start a `llama-server`, then use `/models` inside Gustave to discover, load, unload, and select its models. The default server URL is `http://127.0.0.1:9931`.
+
+For a different endpoint, add an environment variable to `~/.gustave/config.json`:
+
+```json
+{
+  "env": {
+    "LLAMA_SERVER_URL": "http://127.0.0.1:8080"
+  }
+}
+```
+
+For multiple named servers and model overrides, configure `llamaSettings` in `~/.gustave/agent/settings.json`:
+
+```json
+{
+  "llamaSettings": {
+    "servers": [
+      { "url": "http://127.0.0.1:9931", "id": "local", "name": "Local" },
+      { "url": "http://10.0.0.5:9931", "name": "Remote" }
+    ]
+  }
+}
+```
+
+Use `/models servers`, `/models settings`, and `/models overrides` to manage the configuration interactively. Use `/login` to add an API key for an authenticated server.
+
 ### Bedrock credential refresh
 
 When the provider is Amazon Bedrock and a request fails with `401`/`403` or an
@@ -296,9 +325,10 @@ shell.
 | Codemode | `codemode` | Pi 1.x JavaScript tool orchestration enabled by default |
 | Credential firewall | `/credential-firewall` | keeps `gh`/`aws` usable while blocking known credential extraction and redacting accidental token leaks from tool output |
 | Bedrock auth | `/bedrock-login`, `GUSTAVE_BEDROCK_*` | renews Amazon Bedrock AWS CLI login sessions from cached refresh tokens, falls back to `aws login --profile=dev`, then offers to retry |
+| llama.cpp | `pi-llama-cpp`, `/models`, `LLAMA_SERVER_URL` | discovers and manages models across local or remote llama.cpp servers |
 | MCP | pi built-in MCP, `/mcp`, `gustave mcp ...` | native MCP over stdio/HTTP; tools exposed as `mcp__<server>__<tool>` |
-| Svelte | bundled `svelte` MCP server (`direct`) | official Svelte MCP, bundled stdio with HTTP fallback; tools as `mcp__svelte__*` |
-| Browser | `gustave agent-browser ...`, bundled `agent-browser` MCP server (`deferred`) | token-efficient browser automation |
+| Svelte | bundled `svelte` MCP server | official Svelte documentation and autofix tools |
+| Browser | `gustave agent-browser ...`, bundled `agent-browser` MCP server | token-efficient browser automation |
 | Paseo | `gustave paseo ...` | external multi-agent orchestration |
 
 ## Credential firewall
@@ -389,4 +419,4 @@ This repository is also a pi package. Pi discovers resources from:
 - `prompts/`
 - `themes/`
 
-The wrapper writes initial Gustave settings into `~/.gustave/agent/settings.json`, Pi MCP config into `~/.gustave/agent/mcp.json`, and keeps paths absolute. Gustave enables Pi 1.x `codemode` by default. Gustave also bundles `pi-powerline-footer` as a dependency and loads it from `node_modules/pi-powerline-footer/index.ts`; the local `gustave-ui` extension only publishes a small `gustave` status item for that powerline.
+The wrapper writes initial Gustave settings into `~/.gustave/agent/settings.json`, Pi MCP config into `~/.gustave/agent/mcp.json`, and keeps paths absolute. Gustave enables Pi 1.x `codemode` by default. Gustave bundles `pi-powerline-footer` and `pi-llama-cpp` as dependencies and loads their extensions directly; the local `gustave-ui` extension only publishes a small `gustave` status item for the powerline.

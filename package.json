@@ -26,6 +26,7 @@
     "@plannotator/pi-extension": "^0.28.18",
     "@sveltejs/mcp": "^0.1.26",
     "agent-browser": "^0.39.0",
+    "pi-llama-cpp": "^0.18.0",
     "pi-powerline-footer": "^0.20.1",
     "typebox": "^1.3.37"
   },
@@ -33,6 +34,7 @@
     "extensions": [
       "./node_modules/pi-powerline-footer/index.ts",
       "./node_modules/@plannotator/pi-extension",
+      "./node_modules/pi-llama-cpp/src/index.ts",
       "./extensions"
     ],
     "skills": [

@@ -1,16 +1,16 @@
 #!/usr/bin/env node
+import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawnSync } from "node:child_process";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const online = process.argv.includes("--online");
 const upgrade = process.argv.includes("--upgrade");
 
-// pi packages whose latest release should be pulled in with --upgrade.
+// Pi packages whose latest releases should be pulled in with --upgrade.
 // pi-coding-agent is the direct gate; the pi-* peers ride along via its tree.
-const UPGRADE_TARGETS = ["@earendil-works/pi-coding-agent@latest"];
+const UPGRADE_TARGETS = ["@earendil-works/pi-coding-agent@latest", "pi-llama-cpp@latest"];
 
 function run(label, command, args, env = {}) {
   process.stdout.write(`\n▶ ${label}\n`);
