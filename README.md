@@ -326,9 +326,9 @@ shell.
 | Credential firewall | `/credential-firewall` | keeps `gh`/`aws` usable while blocking known credential extraction and redacting accidental token leaks from tool output |
 | Bedrock auth | `/bedrock-login`, `GUSTAVE_BEDROCK_*` | renews Amazon Bedrock AWS CLI login sessions from cached refresh tokens, falls back to `aws login --profile=dev`, then offers to retry |
 | llama.cpp | `pi-llama-cpp`, `/models`, `LLAMA_SERVER_URL` | discovers and manages models across local or remote llama.cpp servers |
-| MCP | pi built-in MCP, `/mcp`, `gustave mcp ...` | native MCP over stdio/HTTP; tools exposed as `mcp__<server>__<tool>` |
-| Svelte | bundled `svelte` MCP server | official Svelte documentation and autofix tools |
-| Browser | `gustave agent-browser ...`, bundled `agent-browser` MCP server | token-efficient browser automation |
+| MCP | Pi `/mcp`, MCP tools, task-backed tool calls, `gustave mcp ...` | task-aware Pi 1.x MCP extension over stdio/HTTP |
+| Svelte | bundled Pi MCP servers `svelte` and `svelte-local` | official Svelte documentation and autofix tools |
+| Browser | `gustave agent-browser ...`, bundled Pi MCP server `agent-browser` | token-efficient browser automation |
 | Paseo | `gustave paseo ...` | external multi-agent orchestration |
 
 ## Credential firewall
@@ -355,15 +355,14 @@ Check status inside Gustave:
 
 ## MCP servers
 
-Gustave uses pi's built-in MCP support (see pi's `docs/mcp.md`). Bundled servers are written to Gustave's normal `mcp.json`, so `/mcp`, OAuth, exposure controls, and lazy reconnection work consistently:
+Gustave uses a task-aware extension built on Pi 1.x's public MCP API. It preserves Pi's `/mcp` UI, OAuth credentials, resources, exposure modes, and lazy reconnection while adding transparent support for `io.modelcontextprotocol/tasks`: task-backed tool calls are polled until they return a normal tool result. Bundled servers are written to `~/.gustave/agent/mcp.json`:
 
 - `svelte` — official Svelte MCP over HTTP.
 - `svelte-local` — bundled `@sveltejs/mcp` stdio server.
 - `agent-browser` — local `agent-browser mcp` stdio server.
 
 Manage servers from `/mcp` inside a session. From a shell, `gustave mcp ...` wraps
-`pi mcp ...` and edits your own `~/.pi/agent/mcp.json` (Gustave's bundled servers are
-session-only and show up in `/mcp`, not in `gustave mcp list`):
+`pi mcp ...` and edits `~/.gustave/agent/mcp.json`:
 
 ```bash
 gustave mcp list
@@ -395,8 +394,7 @@ gustave agent-browser close
 ```
 
 Or use it through MCP: the bundled `agent-browser` server exposes its tools as
-`mcp__agent-browser__*` (exposure `deferred`, loaded via `tool_search`). Manage it
-from `/mcp`.
+`mcp__agent_browser__*` through codemode. Manage it from `/mcp`.
 
 ## Paseo
 

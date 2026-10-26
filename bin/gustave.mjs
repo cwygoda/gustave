@@ -312,14 +312,15 @@ const bundledExtensions = [
     "bedrock-auth.ts",
     "game-sounds.ts",
     "gustave-ui.ts",
-    "mcp-servers.ts",
     "memory.ts",
     "research.ts",
     "subagents.ts",
   ].map((file) => ["--extension", join(root, "extensions", file)]),
+  ["--extension", join(root, "extensions", "mcp-tasks", "index.ts")],
 ].flat();
 
 const resourceArgs = [
+  "--no-mcp",
   ...bundledExtensions,
   "--skill",
   join(root, "skills"),
