@@ -79,6 +79,8 @@ Gustave's base prompt and `architecture` skill bias it toward:
 - a fast test pyramid: many unit/domain tests, focused integration/contract tests, few high-value e2e tests
 - modern fast CLI tools when available (`rg`, `fd`, `jq`, `yq`, `bat`, `eza`, `delta`, `hyperfine`) with portable fallbacks when needed
 
+[Ponytail](https://pi.dev/packages/@dietrichgebert/ponytail) is enabled in `full` mode by default to favor the smallest complete change. Use `/ponytail lite|full|ultra|off`; its review and audit skills are available through `/ponytail-review` and `/ponytail-audit`.
+
 ## Commit policy
 
 When Gustave creates commits, it enforces:
@@ -283,6 +285,17 @@ For multiple named servers and model overrides, configure `llamaSettings` in `~/
 
 Use `/models servers`, `/models settings`, and `/models overrides` to manage the configuration interactively. Use `/login` to add an API key for an authenticated server.
 
+### Claude Code bridge
+
+Gustave bundles [`pi-claude-bridge`](https://pi.dev/packages/pi-claude-bridge), which exposes Claude Code as the `claude-bridge` model provider. Authenticate with Claude Code, start Gustave, then select a bridge model from `/model`:
+
+```bash
+claude auth login
+gustave
+```
+
+Bridge configuration lives in `~/.gustave/agent/claude-bridge.json`. The bridge uses Claude Code authentication rather than Gustave's `/login`.
+
 ### Bedrock credential refresh
 
 When the provider is Amazon Bedrock and a request fails with `401`/`403` or an
@@ -313,7 +326,7 @@ shell.
 | Area | Tools/commands | Purpose |
 |---|---|---|
 | TUI | `pi-powerline-footer`, `/powerline`, `/bash-mode`, `/vibe` | fixed-editor powerline, git/context/token/cost segments, stash/history, bash mode, working vibes |
-| Output style | `i-have-adhd` skill | action-first, numbered, low-tangent responses for ADHD-friendly execution |
+| Output style | `i-have-adhd`, Ponytail skills, `/ponytail ...` | action-first responses and minimal complete implementations |
 | Architecture | `architecture` skill | hexagonal/clean architecture judgment, fast test pyramid, modern CLI tool defaults |
 | Ask user | `ask_user` | structured human decision handshakes |
 | Research | `web_search`, `fetch_url` | web/docs research (`BRAVE_API_KEY` optional) |
@@ -321,16 +334,18 @@ shell.
 | Plans | `plan_annotate`, `plan_read` | markdown plan tracking |
 | Subagents | `subagents_list`, `subagent` | isolated specialized pi subprocesses |
 | Codemode | `codemode` | Pi 1.x JavaScript tool orchestration enabled by default |
-| Credential firewall | `/credential-firewall` | keeps `gh`/`aws` usable while blocking known credential extraction and redacting accidental token leaks from tool output |
+| Safety | `cc-safety-net`, `/cc-safety-net`, `/credential-firewall` | blocks destructive commands and secret access while redacting accidental credential output |
 | Bedrock auth | `/bedrock-login`, `GUSTAVE_BEDROCK_*` | renews Amazon Bedrock AWS CLI login sessions from cached refresh tokens, falls back to `aws login --profile=dev`, then offers to retry |
-| llama.cpp | `pi-llama-cpp`, `/models`, `LLAMA_SERVER_URL` | discovers and manages models across local or remote llama.cpp servers |
+| Models | `pi-llama-cpp`, `pi-claude-bridge`, `/models`, `/model` | uses local llama.cpp servers or Claude Code as model providers |
 | MCP | Pi `/mcp`, MCP tools, task-backed tool calls, `gustave mcp ...` | task-aware Pi 1.x MCP extension over stdio/HTTP |
 | Svelte | bundled Pi MCP server `svelte` | official Svelte documentation and autofix tools |
 | Paseo | `gustave paseo ...` | external multi-agent orchestration |
 
-## Credential firewall
+## Safety controls
 
-Gustave includes a credential firewall extension that lets authenticated CLIs keep working while reducing accidental credential exposure to the model/session.
+Gustave bundles [CC Safety Net](https://pi.dev/packages/cc-safety-net) to block destructive commands and secret-file access before tool execution. Run `/cc-safety-net` for its rules, integrations, and diagnostics.
+
+The local credential firewall complements it by letting authenticated CLIs keep working while reducing accidental credential exposure to the model/session.
 
 It blocks known credential-extraction actions such as:
 

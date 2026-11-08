@@ -17,14 +17,20 @@
     "node": ">=22.19.0"
   },
   "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "0.3.308",
     "@citedy/game-sounds": "^3.0.1",
+    "@dietrichgebert/ponytail": "^5.3.3",
     "@earendil-works/pi-agent-core": "^1.5.0",
     "@earendil-works/pi-ai": "^1.5.0",
     "@earendil-works/pi-coding-agent": "^1.5.0",
     "@earendil-works/pi-mcp": "1.5.0",
     "@earendil-works/pi-tui": "^1.5.0",
     "@getpaseo/cli": "^0.15.3",
+    "@modelcontextprotocol/sdk": "1.32.2",
     "@plannotator/pi-extension": "^0.28.51",
+    "cc-safety-net": "^2.7.6",
+    "cc-session-io": "0.4.1",
+    "pi-claude-bridge": "^0.11.0",
     "pi-llama-cpp": "^0.21.0",
     "pi-powerline-footer": "^0.22.0",
     "typebox": "^1.4.5"
@@ -34,9 +40,13 @@
       "./node_modules/pi-powerline-footer/index.ts",
       "./node_modules/@plannotator/pi-extension",
       "./node_modules/pi-llama-cpp/src/index.ts",
+      "./node_modules/cc-safety-net/dist/pi/index.js",
+      "./node_modules/@dietrichgebert/ponytail/pi-extension/index.js",
+      "./node_modules/pi-claude-bridge/src/index.ts",
       "./extensions"
     ],
     "skills": [
+      "./node_modules/@dietrichgebert/ponytail/skills",
       "./skills"
     ],
     "prompts": [

@@ -19,6 +19,23 @@ function run(label, command, args, opts = {}) {
   process.stdout.write(`✓ ${label}\n`);
 }
 
+function runCheckingOutput(label, command, args, { expected, rejected, env } = {}) {
+  process.stdout.write(`\n▶ ${label}\n`);
+  const result = spawnSync(command, args, {
+    cwd: root,
+    encoding: "utf8",
+    env: { ...process.env, ...env },
+  });
+  process.stdout.write(result.stdout ?? "");
+  process.stderr.write(result.stderr ?? "");
+  const output = `${result.stdout ?? ""}\n${result.stderr ?? ""}`;
+  if (result.status !== 0 || expected?.test(output) === false || rejected?.test(output)) {
+    console.error(`\n✗ ${label} failed${result.status !== 0 ? ` with exit ${result.status}` : " output validation"}`);
+    process.exit(result.status !== null && result.status !== 0 ? result.status : 1);
+  }
+  process.stdout.write(`✓ ${label}\n`);
+}
+
 // Like run(), but a non-zero exit only warns. Use for third-party checks that can
 // break on new pi releases without affecting Gustave's runtime.
 function runNonFatal(label, command, args, note, opts = {}) {
@@ -96,6 +113,18 @@ run("llama.cpp extension dependency", process.execPath, [
   "-e",
   "require('fs').accessSync('node_modules/pi-llama-cpp/src/index.ts')",
 ]);
+run("CC Safety Net extension dependency", process.execPath, [
+  "-e",
+  "require('fs').accessSync('node_modules/cc-safety-net/dist/pi/index.js')",
+]);
+run("Ponytail resources", process.execPath, [
+  "-e",
+  "const fs=require('fs'); fs.accessSync('node_modules/@dietrichgebert/ponytail/pi-extension/index.js'); for (const skill of ['ponytail','ponytail-audit','ponytail-debt','ponytail-gain','ponytail-help','ponytail-review']) fs.accessSync('node_modules/@dietrichgebert/ponytail/skills/'+skill+'/SKILL.md')",
+]);
+run("Claude bridge extension dependency", process.execPath, [
+  "-e",
+  "require('fs').accessSync('node_modules/pi-claude-bridge/src/index.ts')",
+]);
 const runtimeAgentDir = join(runtimeHome, "agent");
 mkdirSync(runtimeAgentDir, { recursive: true });
 writeFileSync(
@@ -118,11 +147,22 @@ writeFileSync(
     2
   )}\n`
 );
-run(
+const offlineRuntimeEnv = {
+  GUSTAVE_HOME: runtimeHome,
+  PI_CODING_AGENT_DIR: runtimeAgentDir,
+  PI_OFFLINE: "1",
+};
+runCheckingOutput(
   "Gustave resource startup",
   process.execPath,
   ["bin/gustave.mjs", "--no-session", "--list-models", "__gustave_self_test_no_model__"],
-  { env: { GUSTAVE_HOME: runtimeHome, PI_CODING_AGENT_DIR: runtimeAgentDir, PI_OFFLINE: "1" } }
+  { rejected: /Failed to load extension/, env: offlineRuntimeEnv }
+);
+runCheckingOutput(
+  "Claude bridge model provider",
+  process.execPath,
+  ["bin/gustave.mjs", "--no-session", "--list-models", "claude-bridge"],
+  { expected: /^claude-bridge\s+claude-/m, rejected: /Failed to load extension/, env: offlineRuntimeEnv }
 );
 const migratedMcpServers = JSON.parse(readFileSync(join(runtimeAgentDir, "mcp.json"), "utf8")).mcpServers;
 if (

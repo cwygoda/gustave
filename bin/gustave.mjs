@@ -297,9 +297,13 @@ const bundledExtensions = [
   ["--extension", packageFile("pi-powerline-footer", "index.ts")],
   ["--extension", packageFile("@plannotator/pi-extension", "index.ts")],
   ["--extension", packageFile("pi-llama-cpp", "src/index.ts")],
+  ["--extension", packageFile("cc-safety-net", "dist/pi/index.js")],
+  ["--extension", packageFile("@dietrichgebert/ponytail", "pi-extension/index.js")],
+  ["--extension", packageFile("pi-claude-bridge", "src/index.ts")],
   ...[
     "ask-user.ts",
     "bedrock-auth.ts",
+    "credential-firewall.ts",
     "game-sounds.ts",
     "gustave-ui.ts",
     "memory.ts",
@@ -312,6 +316,8 @@ const bundledExtensions = [
 const resourceArgs = [
   "--no-mcp",
   ...bundledExtensions,
+  "--skill",
+  packageFile("@dietrichgebert/ponytail", "skills"),
   "--skill",
   join(root, "skills"),
   "--theme",
