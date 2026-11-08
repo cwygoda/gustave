@@ -303,7 +303,7 @@ const bundledExtensions = [
   ...[
     "ask-user.ts",
     "bedrock-auth.ts",
-    "credential-firewall.ts",
+    "credential-redactor.ts",
     "game-sounds.ts",
     "gustave-ui.ts",
     "memory.ts",

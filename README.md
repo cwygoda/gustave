@@ -334,7 +334,7 @@ shell.
 | Plans | `plan_annotate`, `plan_read` | markdown plan tracking |
 | Subagents | `subagents_list`, `subagent` | isolated specialized pi subprocesses |
 | Codemode | `codemode` | Pi 1.x JavaScript tool orchestration enabled by default |
-| Safety | `cc-safety-net`, `/cc-safety-net`, `/credential-firewall` | blocks destructive commands and secret access while redacting accidental credential output |
+| Safety | `cc-safety-net`, `/cc-safety-net`, `/credential-redactor` | blocks destructive commands and secret access while redacting accidental credential output |
 | Bedrock auth | `/bedrock-login`, `GUSTAVE_BEDROCK_*` | renews Amazon Bedrock AWS CLI login sessions from cached refresh tokens, falls back to `aws login --profile=dev`, then offers to retry |
 | Models | `pi-llama-cpp`, `pi-claude-bridge`, `/models`, `/model` | uses local llama.cpp servers or Claude Code as model providers |
 | MCP | Pi `/mcp`, MCP tools, task-backed tool calls, `gustave mcp ...` | task-aware Pi 1.x MCP extension over stdio/HTTP |
@@ -345,9 +345,7 @@ shell.
 
 Gustave bundles [CC Safety Net](https://pi.dev/packages/cc-safety-net) to block destructive commands and secret-file access before tool execution. Run `/cc-safety-net` for its rules, integrations, and diagnostics.
 
-The local credential firewall complements it by letting authenticated CLIs keep working while reducing accidental credential exposure to the model/session.
-
-It blocks known credential-extraction actions such as:
+The local credential redactor complements it by filtering accidental secret output before it reaches the model or session. It also blocks explicit credential-export commands that CC Safety Net intentionally allows. Together these layers block actions such as:
 
 ```bash
 gh auth token
@@ -362,7 +360,7 @@ It also redacts common token shapes from `bash` and `read` tool output before th
 Check status inside Gustave:
 
 ```text
-/credential-firewall
+/credential-redactor
 ```
 
 ## MCP servers
