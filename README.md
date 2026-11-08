@@ -1,6 +1,6 @@
 # Gustave
 
-Gustave is a custom coding-agent distribution based on [pi](https://pi.dev). It wraps pi with a branded CLI, bundled skills/tools, llama.cpp support, MCP access, browser automation, subagents, memory, and the [`pi-powerline-footer`](https://pi.dev/packages/pi-powerline-footer) TUI.
+Gustave is a custom coding-agent distribution based on [pi](https://pi.dev). It wraps pi with a branded CLI, bundled skills/tools, llama.cpp support, MCP access, subagents, memory, and the [`pi-powerline-footer`](https://pi.dev/packages/pi-powerline-footer) TUI.
 
 ## Copy/paste install
 
@@ -213,9 +213,8 @@ gustave self-update [--online] [--upgrade]  # Gustave update + tests (--upgrade 
 gustave self-test [--online]
 gustave install-bin [--dir ~/.local/bin]
 gustave github-ssh [--owner cwygoda]
-gustave mcp [add|remove|list|login|logout ...]  # manage ~/.pi/agent/mcp.json
+gustave mcp [add|remove|list|login|logout ...]  # manage ~/.gustave/agent/mcp.json
 gustave paseo [...args]
-gustave agent-browser [...args]
 gustave pi-help
 ```
 
@@ -226,7 +225,6 @@ gustave -p "Summarize this repository"
 gustave --model sonnet:high "Refactor the auth module"
 gustave update --all
 gustave mcp list
-gustave agent-browser snapshot
 gustave paseo ls
 ```
 
@@ -327,8 +325,7 @@ shell.
 | Bedrock auth | `/bedrock-login`, `GUSTAVE_BEDROCK_*` | renews Amazon Bedrock AWS CLI login sessions from cached refresh tokens, falls back to `aws login --profile=dev`, then offers to retry |
 | llama.cpp | `pi-llama-cpp`, `/models`, `LLAMA_SERVER_URL` | discovers and manages models across local or remote llama.cpp servers |
 | MCP | Pi `/mcp`, MCP tools, task-backed tool calls, `gustave mcp ...` | task-aware Pi 1.x MCP extension over stdio/HTTP |
-| Svelte | bundled Pi MCP servers `svelte` and `svelte-local` | official Svelte documentation and autofix tools |
-| Browser | `gustave agent-browser ...`, bundled Pi MCP server `agent-browser` | token-efficient browser automation |
+| Svelte | bundled Pi MCP server `svelte` | official Svelte documentation and autofix tools |
 | Paseo | `gustave paseo ...` | external multi-agent orchestration |
 
 ## Credential firewall
@@ -358,8 +355,6 @@ Check status inside Gustave:
 Gustave uses a task-aware extension built on Pi 1.x's public MCP API. It preserves Pi's `/mcp` UI, OAuth credentials, resources, exposure modes, and lazy reconnection while adding transparent support for `io.modelcontextprotocol/tasks`: task-backed tool calls are polled until they return a normal tool result. Bundled servers are written to `~/.gustave/agent/mcp.json`:
 
 - `svelte` — official Svelte MCP over HTTP.
-- `svelte-local` — bundled `@sveltejs/mcp` stdio server.
-- `agent-browser` — local `agent-browser mcp` stdio server.
 
 Manage servers from `/mcp` inside a session. From a shell, `gustave mcp ...` wraps
 `pi mcp ...` and edits `~/.gustave/agent/mcp.json`:
@@ -374,27 +369,6 @@ gustave mcp remove docs
 Servers written for other agents (Cursor, Claude, Codex, VS Code, opencode) can be
 copied/converted into Gustave's `mcp.json`. Inside a session, the model reaches
 MCP tools through their configured exposure mode.
-
-## agent-browser
-
-Install Chrome for Testing once if needed:
-
-```bash
-gustave agent-browser install
-```
-
-Then:
-
-```bash
-gustave agent-browser open https://example.com
-gustave agent-browser snapshot
-gustave agent-browser click @e2
-gustave agent-browser screenshot page.png
-gustave agent-browser close
-```
-
-Or use it through MCP: the bundled `agent-browser` server exposes its tools as
-`mcp__agent_browser__*` through codemode. Manage it from `/mcp`.
 
 ## Paseo
 

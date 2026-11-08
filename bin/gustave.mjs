@@ -173,32 +173,21 @@ function piCliPath() {
 }
 
 function bundledMcpServers() {
-  const agentBrowserBin = join(root, "node_modules", "agent-browser", "bin", "agent-browser.js");
-  const svelteLocalBin = join(root, "node_modules", "@sveltejs", "mcp", "dist", "index.mjs");
-  const piServers = {
+  return {
     svelte: {
       description: "Official Svelte documentation and autofix MCP over Streamable HTTP",
       url: "https://mcp.svelte.dev/mcp",
       exposure: "codemode",
     },
   };
-  if (existsSync(svelteLocalBin)) {
-    piServers["svelte-local"] = {
-      description: "Official Svelte documentation and autofix MCP via bundled stdio package",
-      command: process.execPath,
-      args: [svelteLocalBin],
-      exposure: "codemode",
-    };
-  }
-  if (existsSync(agentBrowserBin)) {
-    piServers["agent-browser"] = {
-      description: "Token-efficient browser automation with agent-browser",
-      command: process.execPath,
-      args: [agentBrowserBin, "mcp"],
-      exposure: "codemode",
-    };
-  }
-  return piServers;
+}
+
+function isRemovedBundledMcpServer(name, server) {
+  const args = Array.isArray(server?.args) ? server.args.join("/").replaceAll("\\", "/") : "";
+  return (
+    (name === "svelte-local" && args.includes("/node_modules/@sveltejs/mcp/dist/index.mjs")) ||
+    (name === "agent-browser" && args.includes("/node_modules/agent-browser/bin/agent-browser.js/mcp"))
+  );
 }
 
 function ensurePiMcpConfig(agentDir) {
@@ -214,8 +203,11 @@ function ensurePiMcpConfig(agentDir) {
       existing = {};
     }
   }
+  const existingServers = Object.fromEntries(
+    Object.entries(existing.mcpServers ?? {}).filter(([name, server]) => !isRemovedBundledMcpServer(name, server))
+  );
   const merged = deepMerge(next, existing);
-  merged.mcpServers = { ...next.mcpServers, ...(existing.mcpServers ?? {}) };
+  merged.mcpServers = { ...next.mcpServers, ...existingServers };
   writeFileSync(configFile, `${JSON.stringify(merged, null, 2)}\n`);
   return configFile;
 }
@@ -242,7 +234,7 @@ function spawnNodeScript(script, args, env) {
 
 function printGustaveHelp() {
   console.log(
-    `gustave - a custom coding agent based on pi\n\nUsage:\n  gustave [pi options] [@files...] [messages...]\n  gustave update [pi update options]\n  gustave auth [...args]\n  gustave mcp [add|remove|list|login|logout ...]\n  gustave install-bin [--dir ~/.local/bin]\n  gustave self-test [--online]\n  gustave self-update [--online] [--upgrade]\n  gustave github-ssh [--owner cwygoda]\n  gustave paseo [...args]\n  gustave agent-browser [...args]\n  gustave config-path\n  gustave pi-help\n\nConfig files, merged in order:\n  ~/.config/gustave/config.json\n  ~/.gustave/config.json\n  ./.gustave/config.json\n\nSet GUSTAVE_CONFIG=/path/to/config.json to load an explicit file first.\n\nExample config:\n{\n  "env": { "AWS_PROFILE": "dev" },\n  "envFiles": ["~/.gustave/env"],\n  "piArgs": ["--model", "amazon-bedrock/<model-id>"],\n  "theme": "gustave"\n}\n\nAll other arguments are passed through to pi. Pi 1.x requires --provider to be paired with --model, so prefer --model provider/model-id in piArgs. Use \`gustave pi-help\` for pi's full help.`
+    `gustave - a custom coding agent based on pi\n\nUsage:\n  gustave [pi options] [@files...] [messages...]\n  gustave update [pi update options]\n  gustave auth [...args]\n  gustave mcp [add|remove|list|login|logout ...]\n  gustave install-bin [--dir ~/.local/bin]\n  gustave self-test [--online]\n  gustave self-update [--online] [--upgrade]\n  gustave github-ssh [--owner cwygoda]\n  gustave paseo [...args]\n  gustave config-path\n  gustave pi-help\n\nConfig files, merged in order:\n  ~/.config/gustave/config.json\n  ~/.gustave/config.json\n  ./.gustave/config.json\n\nSet GUSTAVE_CONFIG=/path/to/config.json to load an explicit file first.\n\nExample config:\n{\n  "env": { "AWS_PROFILE": "dev" },\n  "envFiles": ["~/.gustave/env"],\n  "piArgs": ["--model", "amazon-bedrock/<model-id>"],\n  "theme": "gustave"\n}\n\nAll other arguments are passed through to pi. Pi 1.x requires --provider to be paired with --model, so prefer --model provider/model-id in piArgs. Use \`gustave pi-help\` for pi's full help.`
   );
 }
 
@@ -295,8 +287,6 @@ function spawnTool(bin, args) {
 }
 
 if (argv[0] === "paseo") spawnTool(packageBin("@getpaseo/cli", "bin/paseo"), argv.slice(1));
-if (argv[0] === "agent-browser" || argv[0] === "agentbrowser")
-  spawnTool(packageBin("agent-browser", "bin/agent-browser.js"), argv.slice(1));
 
 if (argv[0] === "pi-help") {
   argv.splice(0, 1, "--help");

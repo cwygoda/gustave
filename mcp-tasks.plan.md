@@ -248,7 +248,6 @@ Verify:
 
 - Gustave loads one MCP implementation;
 - Svelte HTTP still connects;
-- Svelte local and agent-browser stdio servers still connect;
 - `direct`, `codemode`, `deferred`, and `hidden` exposure still works;
 - `/mcp` login/logout/reconnect still works;
 - `gustave mcp list --json` still works outside a session;

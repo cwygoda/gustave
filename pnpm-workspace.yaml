@@ -1,14 +1,15 @@
 
+# Security-patched releases compatible with upstream semver ranges.
+overrides:
+  '@modelcontextprotocol/sdk': 1.32.2
+  '@modelcontextprotocol/sdk>@hono/node-server': 2.1.6
+
 allowBuilds:
   '@google/genai': false
-  agent-browser: false
   esbuild: true
   node-pty: false
   protobufjs: false
 peerDependencyRules:
   allowedVersions:
-    '@earendil-works/pi-ai': '0.99.1'
-    '@earendil-works/pi-coding-agent': '0.99.1'
-    '@earendil-works/pi-tui': '0.99.1'
     '@pierre/theme': '2.0.0'
     react: '19.2.7'

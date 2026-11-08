@@ -96,12 +96,46 @@ run("llama.cpp extension dependency", process.execPath, [
   "-e",
   "require('fs').accessSync('node_modules/pi-llama-cpp/src/index.ts')",
 ]);
+const runtimeAgentDir = join(runtimeHome, "agent");
+mkdirSync(runtimeAgentDir, { recursive: true });
+writeFileSync(
+  join(runtimeAgentDir, "mcp.json"),
+  `${JSON.stringify(
+    {
+      mcpServers: {
+        "svelte-local": {
+          command: process.execPath,
+          args: [resolve(root, "node_modules", "@sveltejs", "mcp", "dist", "index.mjs")],
+        },
+        "agent-browser": {
+          command: process.execPath,
+          args: [resolve(root, "node_modules", "agent-browser", "bin", "agent-browser.js"), "mcp"],
+        },
+        custom: { command: "custom-mcp", enabled: false },
+      },
+    },
+    null,
+    2
+  )}\n`
+);
 run(
   "Gustave resource startup",
   process.execPath,
   ["bin/gustave.mjs", "--no-session", "--list-models", "__gustave_self_test_no_model__"],
-  { env: { GUSTAVE_HOME: runtimeHome, PI_OFFLINE: "1" } }
+  { env: { GUSTAVE_HOME: runtimeHome, PI_CODING_AGENT_DIR: runtimeAgentDir, PI_OFFLINE: "1" } }
 );
+const migratedMcpServers = JSON.parse(readFileSync(join(runtimeAgentDir, "mcp.json"), "utf8")).mcpServers;
+if (
+  migratedMcpServers["svelte-local"] ||
+  migratedMcpServers["agent-browser"] ||
+  migratedMcpServers.svelte?.url !== "https://mcp.svelte.dev/mcp" ||
+  migratedMcpServers.svelte?.exposure !== "codemode" ||
+  !migratedMcpServers.custom
+) {
+  console.error("✗ Removed MCP server migration failed");
+  process.exit(1);
+}
+console.log("✓ Removed MCP server migration");
 run("Commit hook accepts Conventional Commit", process.execPath, [
   "-e",
   "const fs=require('fs'),os=require('os'),path=require('path'),cp=require('child_process'); const f=path.join(os.tmpdir(),'gustave-good-commit-msg'); fs.writeFileSync(f,'fix(cli): validate commit hook\\n'); process.exit(cp.spawnSync(process.execPath,['bin/commit-msg-hook.mjs',f],{cwd:process.cwd(),stdio:'inherit'}).status ?? 1);",
@@ -112,17 +146,14 @@ run("Commit hook rejects agent attribution", process.execPath, [
 ]);
 run("Gustave help", process.execPath, ["bin/gustave.mjs", "--help"]);
 run("Pi help passthrough", process.execPath, ["bin/gustave.mjs", "pi-help"]);
-run("Pi MCP command passthrough", process.execPath, ["bin/gustave.mjs", "mcp", "list"]);
-checkMcpServer("Bundled Svelte MCP (stdio)", "svelte", {
-  command: process.execPath,
-  args: [resolve(root, "node_modules", "@sveltejs", "mcp", "dist", "index.mjs")],
+run("Pi MCP command passthrough", process.execPath, ["bin/gustave.mjs", "mcp", "--help"], {
+  env: { GUSTAVE_HOME: runtimeHome, PI_CODING_AGENT_DIR: runtimeAgentDir, PI_OFFLINE: "1" },
 });
 run("Paseo CLI help", process.execPath, ["node_modules/@getpaseo/cli/bin/paseo", "--help"]);
-run("agent-browser version", process.execPath, ["node_modules/agent-browser/bin/agent-browser.js", "--version"]);
 
 if (online) {
   checkLatestPackage("Bundled pi is latest", "@earendil-works/pi-coding-agent");
-  checkMcpServer("Svelte MCP over HTTP", "svelte", { url: "https://mcp.svelte.dev/mcp" });
+  checkMcpServer("Svelte MCP over HTTP", "svelte", migratedMcpServers.svelte);
 } else {
   console.log("\nSkipping online Svelte MCP smoke. Run `gustave self-test --online` to include it.");
 }
