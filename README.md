@@ -89,16 +89,15 @@ When Gustave creates commits, it enforces:
 - no agent/AI attribution lines such as `Generated with Claude Code`
 - no `Co-Authored-By` / `Signed-off-by` lines naming Claude, Codex, ChatGPT, OpenAI, Anthropic, Gustave, or pi
 
-This is enforced two ways:
+Gustave enforces this two ways:
 
-1. Gustave appends the rule to pi's system prompt.
-2. Gustave injects an environment-only Git `commit-msg` hook for processes it starts.
+1. It appends the rule to pi's system prompt.
+2. The `commit-policy` extension validates `git commit -m ...` messages before the
+   bash tool runs them and blocks violations. This is agent-side only: Gustave
+   never sets `core.hooksPath` in other repositories.
 
-Disable only if necessary:
-
-```bash
-GUSTAVE_DISABLE_GIT_COMMIT_POLICY=1 gustave ...
-```
+The Gustave repo itself also installs a local `commit-msg` hook (see below) for
+human commits; it shares the same policy module as the extension.
 
 ## Development tooling with mise
 

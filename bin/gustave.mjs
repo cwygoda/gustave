@@ -212,17 +212,6 @@ function ensurePiMcpConfig(agentDir) {
   return configFile;
 }
 
-function withGitCommitPolicyEnv(env) {
-  if (env.GUSTAVE_DISABLE_GIT_COMMIT_POLICY === "1") return env;
-  const next = { ...env, GUSTAVE_NODE: process.execPath };
-  const count = Number.parseInt(String(next.GIT_CONFIG_COUNT ?? "0"), 10);
-  const index = Number.isFinite(count) ? count : 0;
-  next[`GIT_CONFIG_KEY_${index}`] = "core.hooksPath";
-  next[`GIT_CONFIG_VALUE_${index}`] = join(root, "git-hooks");
-  next.GIT_CONFIG_COUNT = String(index + 1);
-  return next;
-}
-
 function spawnNodeScript(script, args, env) {
   const result = spawnSync(process.execPath, [join(root, "bin", script), ...args], {
     stdio: "inherit",
@@ -253,7 +242,7 @@ const envFromFiles = Object.assign(
   ...(config.envFiles ?? []).map((p) => readEnvFile(resolve(process.cwd(), expandHome(p))))
 );
 const piMcpConfig = ensurePiMcpConfig(agentDir);
-const childEnv = withGitCommitPolicyEnv({
+const childEnv = {
   ...process.env,
   GUSTAVE_HOME: gustaveHome,
   GUSTAVE_PACKAGE_ROOT: root,
@@ -262,7 +251,7 @@ const childEnv = withGitCommitPolicyEnv({
   PI_CODING_AGENT_DIR: agentDir,
   ...envFromFiles,
   ...(config.env ?? {}),
-});
+};
 
 ensureDefaultPiSettings(agentDir, root, config);
 
@@ -303,6 +292,7 @@ const bundledExtensions = [
   ...[
     "ask-user.ts",
     "bedrock-auth.ts",
+    "commit-policy.ts",
     "credential-redactor.ts",
     "game-sounds.ts",
     "gustave-ui.ts",
